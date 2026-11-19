@@ -1,2 +1,97 @@
-# clearair-ai
-ClearAir — Personal Air Quality Assistant: live CPCB NAQI + US EPA, personal risk score, best window, AI daily plan (EN/Hindi) and voice for non-readers. PromptWars Challenge 06.
+# ClearAir — Personal Air Quality Assistant
+
+**PromptWars Virtual · Challenge 06 — Urban Air Quality Assistant**
+
+ClearAir turns live air-quality data into decisions a real person can act on:
+what to do today, when to go out, how much pollution an activity will actually
+put into the lungs, and what to fix at home first — explained in plain words,
+in English or Hindi, and even spoken aloud for people who cannot read.
+
+## Chosen vertical
+
+Urban Air Quality Assistant — a GenAI assistant that suggests low-emission
+daily routines, indoor air-quality hacks and sustainable alternatives tailored
+to the user's location and lifestyle, and clearly explains the direct impact
+of each choice.
+
+## What it does
+
+- **Live air, two scales** — live pollutant data (PM2.5, PM10, NO₂, O₃, SO₂, CO)
+  with India's CPCB NAQI computed in code from CPCB's own sub-index breakpoints,
+  plus a US EPA toggle, because the same air scores differently on each scale.
+- **Personal Risk Score (0–100)** — the same AQI means different risk for a
+  healthy walker and a person with asthma who runs. A fixed, transparent
+  formula (profile × activity × duration) gives a verdict per person;
+  7 one-tap family personas included.
+- **Best Window Today** — the day's cleanest hours from the hourly forecast,
+  so outdoor plans move to cleaner air instead of being cancelled.
+- **Exposure Simulator** — estimated PM2.5 dose (µg) for an activity, and how
+  much an N95 saves.
+- **Day Planner** — fixed-time activities keep their time; flexible outdoor
+  ones are shifted to the cleanest hours automatically.
+- **AI daily plan** — a structured plan (English or Hindi) written by GenAI
+  from the live numbers, with the exact prompt visible in the app; a built-in
+  rules engine produces the same plan offline if the AI is unreachable.
+- **Listen, don't read** — one tap speaks today's air and the plan aloud in
+  Hindi or English (with a Roman-Hinglish speech fallback when a phone has no
+  Hindi voice pack), for users who cannot read.
+- **Indoor audit** — household sources (incense, cooking fuel, smoking, dust)
+  ranked with rough fix costs in ₹.
+- **Impact numbers** — CO₂ saved by switching a trip (car 192 / bike 103 /
+  auto 85 / bus-metro 45 g/km factors), exposure reduction, cigarette
+  equivalent (Berkeley Earth rule).
+- **Compare & share** — live comparison of up to 3 places, a cleaner-direction
+  hint, and a shareable AQI card (PNG).
+- **Method & Sources** — the app states plainly that its data is a Copernicus
+  CAMS model estimate via Open-Meteo, not a CPCB ground-station reading.
+
+## How it works
+
+1. The browser fetches live pollutant levels and a 5-day hourly forecast from
+   the Open-Meteo Air Quality API (Copernicus CAMS) — no API key needed.
+2. A deterministic logic layer computes the CPCB NAQI, the US EPA category,
+   the risk score, exposure dose, best window and all impact figures.
+   **AI never calculates numbers.**
+3. GenAI (Pollinations text API, keyless) receives only those computed facts
+   in a structured prompt and writes the plan in plain language. The prompt
+   is viewable in the app ("See the exact prompt").
+4. If live data or the AI is unreachable, the app says so and falls back to
+   its built-in engine — it never shows invented numbers as live data.
+
+## Approach and logic
+
+- Scores and verdicts are deterministic and unit-tested logic, so two users
+  with the same inputs always get the same numbers; the AI layer is used only
+  where language helps — writing, explaining, translating tone.
+- Voice uses the Web Speech API with chunked utterances, a cancel/speak
+  delay and a resume watchdog (Android TTS quirks), plus the Roman-Hinglish
+  fallback described above.
+- Security: no accounts, no tracking, no API keys anywhere; all rendering is
+  text-safe, and the page runs under a strict content-security policy in its
+  multi-file form.
+
+## Assumptions made
+
+- Open-Meteo/CAMS values are area-level model estimates; official readings
+  remain CPCB's. The app says this wherever it matters.
+- Breathing rates used for dose: rest 0.5, light 1.1, moderate 1.9,
+  vigorous 3.0 m³/h (standard reference values, documented in the code).
+- Risk-score weights are a transparent heuristic for guidance, not a medical
+  diagnosis; the app labels its output as general information.
+
+## GenAI services used, and where
+
+- **Pollinations text API** — writes the personalised daily plan and answers
+  in "Ask ClearAir", grounded only in the app's computed live facts.
+- Built-in rules engine mirrors the same plan structure with no AI, so the
+  app works fully offline of the AI service.
+
+## Tech
+
+Single-file HTML/CSS/JavaScript (no build step), Open-Meteo Geocoding +
+Air Quality APIs, Leaflet map with CARTO light tiles, Lucide icons,
+Web Speech API. Deployable as-is on GitHub Pages.
+
+## Run locally
+
+Open `index.html` in any modern browser — no server, keys or build needed.

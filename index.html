@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='15' fill='%23202124'/%3E%3Cg transform='translate(11 16) scale(1.35)' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2'/%3E%3Cpath d='M9.6 4.6A2 2 0 1 1 11 8H2'/%3E%3Cpath d='M12.6 19.4A2 2 0 1 0 14 16H2'/%3E%3C/g%3E%3Ccircle cx='46' cy='32' r='4.6' fill='%2330d158'/%3E%3C/svg%3E" />
+<title>ClearAir — Personal Air Quality Assistant</title>
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --surface2:#fbfbfd; --ink:#1d1d1f; --ink2:#515154; --ink3:#6e6e73;
+  --line:#d2d2d7; --line2:#e8e8ed; --accent:#0071e3; --accent-ink:#0060c9;
+  --good:#1a7f37; --fair:#8a6d00; --mod:#b25e09; --poor:#c9341f; --vpoor:#9333a6; --severe:#7e1d3f;
+  --radius:18px; --radius-s:12px;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#000000; --surface:#1c1c1e; --surface2:#2c2c2e; --ink:#f5f5f7; --ink2:#d1d1d6; --ink3:#98989f;
+    --line:#38383a; --line2:#2c2c2e; --accent:#2997ff; --accent-ink:#2997ff;
+    --good:#30d158; --fair:#ffd60a; --mod:#ff9f0a; --poor:#ff453a; --vpoor:#bf5af2; --severe:#ff375f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.45; font-size:16px}
+button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]){min-height:2.25rem}
+button{font:inherit;cursor:pointer}
+button,a,select,input,summary,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.lucide{width:20px;height:20px;stroke:var(--ink3);stroke-width:1.8;flex:none}
+.wrap{max-width:1060px;margin:0 auto;padding:0 16px 64px}
+
+/* Header */
+header.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line2)}
+.top-in{max-width:1060px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+.appmark{width:32px;height:32px;flex:none;border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.08)}
+.search{flex:1;min-width:200px;display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){ .search{flex-basis:100%;order:3} .search input{flex-basis:100%} }
+.search input{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;font-size:15px;min-height:40px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;min-height:40px;transition:transform .1s ease,box-shadow .15s ease,background .15s ease}
+.btn:disabled{opacity:.55;cursor:default;transform:none!important}
+.btn .spin{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.chip,.seg button{transition:transform .1s ease,background .15s ease,color .15s ease}
+.chip:active,.seg button:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 38%,transparent)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 48%,transparent)}
+.btn.primary .lucide{stroke:#fff}
+.btn:active{transform:scale(.97)}
+.btn.cta{min-height:52px;padding:12px 26px;font-size:16px;gap:9px}
+.btn.cta .lucide{width:21px;height:21px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn[aria-pressed="true"] .lucide{stroke:var(--bg)}
+nav.sub{max-width:1060px;margin:0 auto;padding:0 16px 10px;display:flex;gap:4px;flex-wrap:wrap}
+nav.sub a{color:var(--ink2);text-decoration:none;font-size:13.5px;font-weight:600;padding:8px 10px;min-height:36px;display:inline-flex;align-items:center;border-radius:8px}
+nav.sub a:hover{background:var(--surface2);color:var(--ink)}
+
+/* Layout */
+.grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+@media(min-width:860px){ .grid.two{grid-template-columns:1fr 1fr} .grid.hero{grid-template-columns:1.35fr 1fr} }
+.card{background:var(--surface);border:1px solid var(--line2);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+.card h2 .lucide{stroke:var(--ink)}
+.card .sub{color:var(--ink3);font-size:13.5px;margin:0 0 14px}
+.kicker{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 6px}
+
+/* AQI hero */
+.aqi-num{font-size:76px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.aqi-cat{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line2);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink2);border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14);border:1px solid var(--line2)}
+.meta{color:var(--ink3);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--ink3);color:var(--ink3);flex:none;align-self:center;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 16%,transparent)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--good);color:var(--good);flex:none;box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent);animation:livepulse 2s ease-out infinite}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* Pollutants */
+.pol-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.pol-grid{grid-template-columns:repeat(3,1fr)}}
+.pol{border:1px solid var(--line2);border-radius:var(--radius-s);padding:12px;background:var(--surface2)}
+.pol .name{font-size:12.5px;font-weight:700;color:var(--ink2);display:flex;justify-content:space-between;align-items:center}
+.pol .val{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.pol .unit{font-size:12px;color:var(--ink3);font-weight:600}
+.bar{height:6px;border-radius:3px;background:var(--line2);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--ink3)}
+
+/* Forms */
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:12px 0 6px}
+select,input[type="text"],input[type="time"],textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:9px 12px;font:inherit;font-size:15px;min-height:42px}
+input[type="range"]{width:100%;accent-color:var(--accent);min-height:36px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:600;color:var(--ink2);display:inline-flex;gap:6px;align-items:center;min-height:38px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] .lucide{stroke:var(--bg)}
+.chip .lucide{width:16px;height:16px}
+
+/* Score ring */
+.ring-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ring{position:relative;width:128px;height:128px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .n{font-size:36px;font-weight:800;line-height:1}
+.ring .u{font-size:11px;color:var(--ink3);font-weight:700;letter-spacing:.06em}
+
+/* Plan cards */
+.plan-sec{border-top:1px solid var(--line2);padding:14px 0}
+.plan-sec:first-of-type{border-top:0}
+.plan-sec h3{margin:0 0 8px;font-size:15.5px;display:flex;gap:8px;align-items:center}
+.act{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--line2)}
+.act:first-of-type{border-top:0}
+.act .lucide{margin-top:2px}
+.act b{font-size:14.5px}
+.act p{margin:2px 0 0;font-size:13.5px;color:var(--ink2)}
+.impact{font-size:12.5px;font-weight:700;color:var(--accent-ink)}
+
+/* Lists / checklist */
+.check{list-style:none;margin:0;padding:0}
+.check li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line2);font-size:14.5px;align-items:flex-start}
+.check li:first-child{border-top:0}
+.check .lucide{margin-top:1px}
+.check li.done{color:var(--ink3);text-decoration:line-through}
+.check button{margin-left:auto}
+
+/* Table-ish compare */
+.cmp{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:640px){.cmp{grid-template-columns:repeat(3,1fr)}}
+.cmp .cell{border:1px solid var(--line2);border-radius:var(--radius-s);padding:14px;background:var(--surface2)}
+.cmp .cell .v{font-size:30px;font-weight:800}
+
+/* Chat */
+.chatlog{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow:auto;padding:4px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:14.5px}
+.msg.u{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--surface2);border:1px solid var(--line2);border-bottom-left-radius:4px}
+details{border:1px solid var(--line2);border-radius:var(--radius-s);padding:10px 14px;background:var(--surface2)}
+details summary{font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px}
+pre{white-space:pre-wrap;font-size:12.5px;color:var(--ink2);margin:10px 0 0}
+.notice{border:1px solid var(--line);border-radius:var(--radius-s);padding:12px 14px;font-size:13.5px;color:var(--ink2);display:flex;gap:10px;background:var(--surface2)}
+.err{color:var(--poor);font-size:13.5px;font-weight:600}
+canvas.cardimg{max-width:100%;height:auto;border-radius:var(--radius-s);border:1px solid var(--line2)}
+footer{margin-top:28px;color:var(--ink3);font-size:12.5px;text-align:center}
+a{color:var(--accent-ink)}
+.taskrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line2);font-size:14.5px;flex-wrap:wrap}
+.taskrow .t{font-weight:600}
+.mini{font-size:12px;color:var(--ink3)}
+@media(max-width:640px){ .top-in .search input{flex:1 1 100%} .top-in .search .btn{flex:1;justify-content:center} }
+/* Voice — listen instead of reading */
+.voice-box{margin-top:16px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface2);padding:16px}
+.voice-box h3{margin:0 0 4px;font-size:16.5px;display:flex;align-items:center;gap:9px}
+.voice-box h3 .lucide{stroke:var(--accent);width:22px;height:22px}
+.voice-box .vsub{margin:0 0 12px;color:var(--ink2);font-size:14px}
+.voice-btns{display:flex;gap:10px;flex-wrap:wrap}
+.voice-btn{flex:1;min-width:150px;min-height:56px;justify-content:center;font-size:16.5px;font-weight:700;border-radius:999px;padding:10px 18px}
+.voice-btn .lucide{width:22px;height:22px}
+.voice-btn.speaking{background:var(--poor);border-color:var(--poor);color:#fff}
+.voice-btn.speaking .lucide{stroke:#fff}
+#voiceBtn{box-shadow:0 6px 20px color-mix(in srgb,var(--accent) 40%,transparent)}
+.voice-simple{font-size:16.5px;font-weight:600;margin:12px 0 0;line-height:1.5}
+.voice-status{font-size:13px;color:var(--ink3);margin:8px 0 0;min-height:18px}
+.voice-note{font-size:13px;font-weight:600;color:var(--ink2);margin:8px 0 0;line-height:1.5}
+.listen-mini{min-height:40px}
+.big-stat{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+.stat{border:1px solid var(--line2);border-radius:var(--radius-s);padding:12px;background:var(--surface2)}
+.stat .l{font-size:12px;font-weight:700;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><svg class="appmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="15" fill="#202124"/><g transform="translate(11 16) scale(1.35)" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></g><circle cx="46" cy="32" r="4.6" fill="#30d158"/></svg>ClearAir</div>
+    <form class="search" id="searchForm" role="search" aria-label="Search a place">
+      <input id="searchInput" type="text" placeholder="Search any city or area — Delhi, Mumbai, Bengaluru…" autocomplete="off" aria-label="City or area name" />
+      <button class="btn primary" type="submit" id="searchBtn"><i data-lucide="search"></i>Search</button>
+      <button class="btn" type="button" id="locBtn"><i data-lucide="locate-fixed"></i><span class="hidemob">My location</span></button>
+    </form>
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" id="langEn" aria-pressed="true">EN</button>
+      <button type="button" id="langHi" aria-pressed="false">हिन्दी</button>
+    </div>
+  </div>
+  <nav class="sub" aria-label="Sections">
+    <a href="#now">Now</a><a href="#voiceBox">Listen</a><a href="#risk">My Risk</a><a href="#forecast">Forecast</a><a href="#plan">Plan</a><a href="#indoor">Indoor</a><a href="#compare">Compare</a><a href="#ask">Ask</a><a href="#method">Sources</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <p class="err" id="loadErr" role="alert" hidden></p>
+
+  <!-- NOW -->
+  <div class="grid hero" id="now">
+    <section class="card" aria-labelledby="nowH">
+      <p class="kicker" id="placeLine">Loading live air data…</p>
+      <h2 id="nowH" class="sr" style="position:absolute;left:-9999px">Current air quality</h2>
+      <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
+        <div>
+          <div class="aqi-num" id="aqiNum">–</div>
+          <div class="aqi-cat"><span class="dot" id="aqiDot"></span><span id="aqiCat">—</span></div>
+        </div>
+        <div style="padding-bottom:8px">
+          <div class="seg" role="group" aria-label="AQI standard">
+            <button type="button" id="stdIn" aria-pressed="true">India CPCB</button>
+            <button type="button" id="stdUs" aria-pressed="false">US EPA</button>
+          </div>
+          <p class="meta" id="stdNote" style="margin:8px 0 0">National AQI (CPCB), 0–500 — from the trailing 24-hour mean.</p>
+        </div>
+      </div>
+      <p id="headlineAdvice" style="font-size:16.5px;margin:14px 0 6px"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <span class="pill"><span class="live-dot" aria-hidden="true"></span><span id="liveTxt">LIVE · connecting…</span></span>
+        <span class="pill"><i data-lucide="factory" style="width:14px;height:14px"></i><span id="domPol">Dominant: —</span></span>
+        <span class="pill"><i data-lucide="cigarette" style="width:14px;height:14px"></i><span id="cigEq">—</span></span>
+        <span class="pill"><i data-lucide="clock" style="width:14px;height:14px"></i><span id="updatedAt">—</span></span>
+      </div>
+      <div class="voice-box" id="voiceBox">
+        <h3><i data-lucide="volume-2"></i><span id="voiceTitle">Listen instead of reading</span></h3>
+        <p class="vsub" id="voiceSub">No reading needed — tap the button and the app speaks today's air and what to do.</p>
+        <div class="voice-btns">
+          <button class="btn primary voice-btn" type="button" id="voiceBtn"><i data-lucide="volume-2"></i><span id="voiceBtnLbl">Listen</span></button>
+          <button class="btn voice-btn" type="button" id="voiceStop" hidden><i data-lucide="square"></i><span id="voiceStopLbl">Stop</span></button>
+        </div>
+        <p class="voice-simple" id="voiceSimple">As soon as live data loads, today's air in simple words appears here — and the voice reads the same.</p>
+        <p class="voice-status" id="voiceStatus" role="status" aria-live="polite"></p>
+        <p class="voice-note" id="voiceNote" hidden>इस phone में Hindi आवाज़ (voice pack) install नहीं है — इसलिए ऐप Hinglish में बोलेगा, ताकि सुनाई ज़रूर दे। असली Hindi आवाज़ के लिए: Settings → Text-to-speech → Google → Hindi (भारत) download करें, फिर यहाँ वापस आकर सुनें।</p>
+      </div>
+      <div class="notice" style="margin-top:14px"><i data-lucide="satellite"></i><span id="sourceNote">Live modelled data: Open-Meteo / Copernicus CAMS — a satellite-model estimate, not a CPCB station reading. See Method &amp; Sources.</span></div>
+      <div id="severeBox" hidden style="margin-top:14px">
+        <div class="notice" style="border-color:var(--severe)"><i data-lucide="siren" style="stroke:var(--severe)"></i><span><b>Severe air protocol is active.</b> AQI is above 300. Follow the 30-minute protection checklist in the Indoor section below before anyone steps out.</span></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="bestH">
+      <h2 id="bestH"><i data-lucide="sun"></i>Best window today</h2>
+      <p class="sub">The cleanest 2-hour slot in the next 24 hours, from the hourly forecast.</p>
+      <label class="fl" for="bestAct">Activity</label>
+      <select id="bestAct">
+        <option value="walk">Walk / school run</option><option value="run">Run / sport</option>
+        <option value="cycle">Cycling</option><option value="play">Children playing outside</option>
+        <option value="ventilate">Opening windows (ventilation)</option>
+      </select>
+      <p class="big-stat" id="bestWindow" style="margin:12px 0 2px">—</p>
+      <p class="sub" id="bestDetail" style="margin:0"></p>
+      <p class="kicker" style="margin-top:16px">Cleaner direction nearby</p>
+      <p id="cleanerDir" style="margin:0;font-size:14.5px">Checking the modelled grid around you…</p>
+    </section>
+  </div>
+
+  <!-- POLLUTANTS + WEATHER -->
+  <div class="grid two">
+    <section class="card" aria-labelledby="polH">
+      <h2 id="polH"><i data-lucide="flask-conical"></i>Six pollutants</h2>
+      <p class="sub">Live concentrations with CPCB sub-indices. PM2.5 also vs the WHO guideline (15 µg/m³).</p>
+      <div class="pol-grid" id="polGrid"></div>
+    </section>
+    <section class="card" aria-labelledby="wxH">
+      <h2 id="wxH"><i data-lucide="cloud-sun"></i>Weather context</h2>
+      <p class="sub">Wind and humidity decide whether pollution disperses or builds up.</p>
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat"><div class="l">Temperature</div><div class="big-stat" id="wxTemp">–</div></div>
+        <div class="stat"><div class="l">Humidity</div><div class="big-stat" id="wxHum">–</div></div>
+        <div class="stat"><div class="l">Wind</div><div class="big-stat" id="wxWind">–</div></div>
+        <div class="stat"><div class="l">UV index</div><div class="big-stat" id="wxUv">–</div></div>
+      </div>
+      <p id="wxNote" style="font-size:14.5px;margin:14px 0 0"></p>
+      <p class="kicker" style="margin-top:18px">Map</p>
+      <iframe id="mapFrame" title="Map of selected place" style="width:100%;height:220px;border:1px solid var(--line2);border-radius:12px" loading="lazy"></iframe>
+      <p class="mini">Search a place above — the map, forecast and plan follow it.</p>
+    </section>
+  </div>
+
+  <!-- RISK -->
+  <section class="card" id="risk" aria-labelledby="riskH" style="margin-top:16px">
+    <h2 id="riskH"><i data-lucide="heart-pulse"></i>Personal risk — same air, different answer</h2>
+    <p class="sub">A 0–100 score from live AQI, your health profile, activity and time outside. Same air, different answer — try “healthy adult, walk” vs “asthma, run”.</p>
+    <div class="chips" id="personaChips" role="group" aria-label="Health profile"></div>
+    <div class="grid two" style="margin-top:6px">
+      <div>
+        <label class="fl" for="riskAct">Activity</label>
+        <select id="riskAct"><option value="walk">Walking</option><option value="run">Running</option><option value="cycle">Cycling</option><option value="commute">Commuting (open vehicle / waiting)</option><option value="play">Children playing</option><option value="work">Outdoor work</option></select>
+        <label class="fl" for="riskDur">Time outside: <b id="riskDurVal">30 min</b></label>
+        <input type="range" id="riskDur" min="10" max="180" step="5" value="30" aria-label="Minutes outside" />
+        <label class="fl" style="display:flex;gap:8px;align-items:center"><button type="button" class="chip" id="maskToggle" aria-pressed="false"><i data-lucide="shield"></i>Wearing a fitted N95</button></label>
+      </div>
+      <div class="ring-wrap">
+        <div class="ring" aria-label="Personal risk score">
+          <svg width="128" height="128"><circle cx="64" cy="64" r="56" fill="none" stroke="var(--line2)" stroke-width="10"/><circle id="ringFg" cx="64" cy="64" r="56" fill="none" stroke="var(--ink3)" stroke-width="10" stroke-linecap="round" stroke-dasharray="351.8" stroke-dashoffset="351.8"/></svg>
+          <div class="c"><span class="n" id="riskNum">–</span><span class="u">RISK / 100</span></div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <p style="font-weight:700;font-size:17px;margin:0 0 4px" id="riskVerdict">—</p>
+          <p style="margin:0;color:var(--ink2);font-size:14.5px" id="riskWhy">—</p>
+          <button class="btn listen-mini" type="button" id="voiceRiskBtn" style="margin-top:10px"><i data-lucide="volume-2"></i><span id="voiceRiskLbl">Hear this verdict</span></button>
+        </div>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:16px">Quick-load a demo profile</p>
+    <div class="chips">
+      <button type="button" class="chip" data-demo="healthy"><i data-lucide="person-standing"></i>Healthy adult · walk 30 min</button>
+      <button type="button" class="chip" data-demo="asthma"><i data-lucide="stethoscope"></i>Asthma · run 45 min</button>
+      <button type="button" class="chip" data-demo="child"><i data-lucide="baby"></i>Child · play 60 min</button>
+    </div>
+  </section>
+
+  <!-- FORECAST + HISTORY -->
+  <section class="card" id="forecast" aria-labelledby="fcH" style="margin-top:16px">
+    <h2 id="fcH"><i data-lucide="chart-line"></i>Forecast &amp; last 7 days</h2>
+    <p class="sub">Hourly PM2.5 for the next 24 hours, plus the week at a glance. The worst hour is marked — plan around it.</p>
+    <div id="fcChart" role="img" aria-label="Hourly PM2.5 chart for the next 24 hours"></div>
+    <div class="stat-grid" style="margin-top:14px">
+      <div class="stat"><div class="l">Worst hour (24 h)</div><div class="big-stat" id="worstHour">–</div><div class="mini" id="worstHourV"></div></div>
+      <div class="stat"><div class="l">Best day, last 7</div><div class="big-stat" id="bestDay">–</div><div class="mini" id="bestDayV"></div></div>
+      <div class="stat"><div class="l">Worst day, last 7</div><div class="big-stat" id="worstDay">–</div><div class="mini" id="worstDayV"></div></div>
+      <div class="stat"><div class="l">Tomorrow</div><div class="big-stat" id="tomorrowV">–</div><div class="mini" id="tomorrowNote"></div></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <label for="alertThresh" style="font-size:13.5px;font-weight:600;color:var(--ink2)">Alert me when CPCB AQI goes above</label>
+      <select id="alertThresh" style="width:auto"><option>100</option><option selected>150</option><option>200</option><option>300</option></select>
+      <button class="btn" type="button" id="alertBtn"><i data-lucide="bell"></i>Set alert</button>
+      <span class="mini" id="alertState" role="status"></span>
+    </div>
+  </section>
+
+  <!-- SIMULATOR -->
+  <div class="grid two">
+    <section class="card" id="simulator" aria-labelledby="simH">
+      <h2 id="simH"><i data-lucide="sliders-horizontal"></i>Exposure simulator</h2>
+      <p class="sub">Time × breathing rate = the PM2.5 you actually breathe in. Calculated from the live concentration.</p>
+      <label class="fl" for="simDur">Time outside: <b id="simDurVal">60 min</b></label>
+      <input type="range" id="simDur" min="10" max="300" step="10" value="60" />
+      <label class="fl" for="simInt">Intensity</label>
+      <select id="simInt"><option value="0.45">Sitting / waiting (0.45 m³/h)</option><option value="0.9" selected>Walking (0.9 m³/h)</option><option value="1.5">Cycling / brisk work (1.5 m³/h)</option><option value="2.5">Running (2.5 m³/h)</option></select>
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
+        <div class="stat"><div class="l">Estimated PM2.5 inhaled</div><div class="big-stat" id="simDose">–</div></div>
+        <div class="stat"><div class="l">With fitted N95 (≈95% cut)</div><div class="big-stat" id="simDoseMask">–</div></div>
+      </div>
+      <p class="mini" style="margin-top:10px">Estimate only: concentration × breathing rate × time, using the current live PM2.5. A mask figure assumes a well-fitted N95/KN95.</p>
+    </section>
+
+    <section class="card" aria-labelledby="scoreH">
+      <h2 id="scoreH"><i data-lucide="target"></i>Clean Air Score — today</h2>
+      <p class="sub">Small daily habits, scored honestly. Tap what you have actually done today.</p>
+      <div class="ring-wrap">
+        <div class="ring"><svg width="128" height="128"><circle cx="64" cy="64" r="56" fill="none" stroke="var(--line2)" stroke-width="10"/><circle id="scoreRing" cx="64" cy="64" r="56" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="351.8" stroke-dashoffset="351.8"/></svg>
+        <div class="c"><span class="n" id="scoreNum">0</span><span class="u">SCORE / 100</span></div></div>
+        <div style="flex:1;min-width:180px" id="habitBtns" class="chips"></div>
+      </div>
+      <p class="mini">Score lives only in this session — nothing is stored or sent anywhere.</p>
+    </section>
+  </div>
+
+  <!-- DAY PLANNER -->
+  <section class="card" id="planner" aria-labelledby="dpH" style="margin-top:16px">
+    <h2 id="dpH"><i data-lucide="calendar-clock"></i>Day Planner — fixed things stay, outdoor things move</h2>
+    <p class="sub">Fixed tasks keep their time. Outdoor tasks shift automatically to the cleanest hour in the forecast.</p>
+    <form id="taskForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:2;min-width:160px"><label class="fl" for="taskName" style="margin-top:0">Task</label><input type="text" id="taskName" placeholder="e.g. Evening walk, School pickup" required /></div>
+      <div style="flex:1;min-width:110px"><label class="fl" for="taskTime" style="margin-top:0">Planned time</label><input type="time" id="taskTime" value="18:00" required /></div>
+      <div style="flex:1;min-width:130px"><label class="fl" for="taskKind" style="margin-top:0">Type</label><select id="taskKind"><option value="outdoor">Outdoor — can move</option><option value="fixed">Fixed — cannot move</option><option value="indoor">Indoor</option></select></div>
+      <button class="btn primary" type="submit"><i data-lucide="plus"></i>Add</button>
+    </form>
+    <div id="taskList" style="margin-top:8px"></div>
+    <p class="mini" id="taskEmpty">No tasks yet — add a walk and a fixed task to see the planner move the walk to cleaner air.</p>
+  </section>
+
+  <!-- AI PLAN -->
+  <section class="card" id="plan" aria-labelledby="planH" style="margin-top:16px">
+    <h2 id="planH"><i data-lucide="sparkles"></i>Your plan — built from your routine</h2>
+    <p class="sub">Four quick answers about your household. Your plan: Morning · Commute · Indoor · Evening — each action with a reason and an estimated impact.</p>
+    <div class="grid two" style="margin-top:0">
+      <div>
+        <label class="fl" for="pTransport">Daily commute</label>
+        <select id="pTransport"><option value="car">Car / cab (petrol or diesel)</option><option value="bike">Two-wheeler</option><option value="auto">Auto-rickshaw</option><option value="metro">Metro / bus</option><option value="cycle">Cycle / walk</option><option value="wfh">Mostly work from home</option></select>
+        <label class="fl" for="pCook">Cooking fuel at home</label>
+        <select id="pCook"><option value="gas">LPG gas stove</option><option value="induction">Induction / electric</option><option value="chulha">Wood / biomass chulha</option></select>
+        <label class="fl" for="pHome">Home type</label>
+        <select id="pHome"><option value="flat-road">Flat facing a busy road</option><option value="flat-park">Flat facing a park / inner lane</option><option value="house">Independent house</option></select>
+      </div>
+      <div>
+        <label class="fl" for="pClean">Air cleaning at home</label>
+        <select id="pClean"><option value="purifier">Air purifier</option><option value="plants">Plants only</option><option value="none">Nothing yet</option></select>
+        <label class="fl" for="pFamily">Who is at home?</label>
+        <select id="pFamily"><option value="general">Adults only</option><option value="children">Young children</option><option value="elderly">Elders (60+)</option><option value="asthma">Someone with asthma / lung condition</option><option value="pregnant">Pregnancy in the family</option></select>
+        <label class="fl" for="pLang">Plan language</label>
+        <select id="pLang"><option value="en">English</option><option value="hi">हिन्दी (Hindi)</option></select>
+        <button class="btn primary cta" type="button" id="genPlan" style="margin-top:16px;width:100%"><i data-lucide="wand-sparkles"></i>Generate my plan<i data-lucide="arrow-right"></i></button>
+        <button class="btn" type="button" id="copyPlan" style="margin-top:16px"><i data-lucide="copy"></i>Copy plan</button>
+        <button class="btn" type="button" id="voicePlanBtn" style="margin-top:16px"><i data-lucide="volume-2"></i><span id="voicePlanLbl">Hear the plan</span></button>
+        <span class="mini" id="planState" role="status"></span>
+      </div>
+    </div>
+    <div id="planOut" style="margin-top:8px"></div>
+    <details style="margin-top:14px"><summary><i data-lucide="braces" style="width:16px;height:16px"></i>See the exact prompt sent to the AI</summary><pre id="promptView"></pre></details>
+    <p class="mini" style="margin-top:10px">If the AI is unavailable, the built-in rules engine builds the same plan from the same inputs — safety verdicts never depend on the AI.</p>
+  </section>
+
+  <!-- INDOOR -->
+  <section class="card" id="indoor" aria-labelledby="inH" style="margin-top:16px">
+    <h2 id="inH"><i data-lucide="house"></i>Indoor air — audit &amp; fixes</h2>
+    <p class="sub">Most hours are spent indoors. Tap what&rsquo;s true for your home — fixes come ordered by impact, with honest costs.</p>
+    <div class="chips" id="auditChips"></div>
+    <div id="auditOut" style="margin-top:12px"></div>
+    <p class="kicker" style="margin-top:18px">Ventilation window</p>
+    <p id="ventWindow" style="margin:0;font-size:14.5px">—</p>
+    <div id="severeChecklist" hidden>
+      <p class="kicker" style="margin-top:18px">Severe-day 30-minute protocol</p>
+      <ul class="check" id="severeList"></ul>
+    </div>
+  </section>
+
+  <!-- COMPARE + SHARE -->
+  <div class="grid two">
+    <section class="card" id="compare" aria-labelledby="cmpH">
+      <h2 id="cmpH"><i data-lucide="git-compare"></i>Compare places</h2>
+      <p class="sub">Home vs office vs school — same hour, same standard, live for each place.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="cmpA" placeholder="Place 1 — e.g. Jaipur" style="flex:1;min-width:120px" /><input type="text" id="cmpB" placeholder="Place 2 — e.g. Pune" style="flex:1;min-width:120px" /><input type="text" id="cmpC" placeholder="Place 3 (optional)" style="flex:1;min-width:120px" /></div>
+      <button class="btn primary cta" type="button" id="cmpBtn" style="margin-top:12px"><i data-lucide="scale"></i>Compare live<i data-lucide="arrow-right"></i></button>
+      <div class="cmp" id="cmpOut" style="margin-top:12px"></div>
+    </section>
+    <section class="card" aria-labelledby="shH">
+      <h2 id="shH"><i data-lucide="image-down"></i>Share today’s air card</h2>
+      <p class="sub">A one-tap image of the current reading and your risk verdict — for family chats or your post.</p>
+      <button class="btn primary cta" type="button" id="cardBtn"><i data-lucide="image"></i>Create card<i data-lucide="arrow-right"></i></button>
+      <div id="cardOut" style="margin-top:12px"></div>
+    </section>
+  </div>
+
+  <!-- ASK -->
+  <section class="card" id="ask" aria-labelledby="askH" style="margin-top:16px">
+    <h2 id="askH"><i data-lucide="message-circle-question"></i>Ask ClearAir</h2>
+    <p class="sub">Answers come from the live data and safety rules on this page, in English or Hindi. Try: “Do I need a mask?” or “मास्क पहनूँ?”</p>
+    <div class="chatlog" id="chatLog" aria-live="polite"></div>
+    <form id="chatForm" style="display:flex;gap:8px;margin-top:10px">
+      <input type="text" id="chatInput" placeholder="Ask about masks, exercise, windows, school run…" aria-label="Your question" style="flex:1" />
+      <button class="btn primary" type="submit"><i data-lucide="send-horizontal"></i>Ask</button>
+    </form>
+  </section>
+
+  <!-- METHOD -->
+  <section class="card" id="method" aria-labelledby="mH" style="margin-top:16px">
+    <h2 id="mH"><i data-lucide="book-open"></i>Method &amp; sources</h2>
+    <p class="sub">What the numbers are, what they are not, and where they come from.</p>
+    <ul class="check">
+      <li><i data-lucide="satellite"></i><span><b>Data:</b> Open-Meteo Air Quality API (Copernicus CAMS), free, no key. CAMS is a modelled grid (~11–45 km) — an estimate for your area, <b>not</b> a CPCB ground-station reading; a nearby station can differ.</span></li>
+      <li><i data-lucide="calculator"></i><span><b>India CPCB NAQI</b> is computed here from pollutant sub-indices using CPCB breakpoints, on the trailing 24-hour mean — how CPCB defines the daily index. <b>US EPA AQI</b> comes from the same live feed. The scales genuinely differ, which is why both are shown.</span></li>
+      <li><i data-lucide="scale"></i><span><b>WHO comparison:</b> PM2.5 against the WHO 2021 24-hour guideline of 15 µg/m³.</span></li>
+      <li><i data-lucide="cigarette"></i><span><b>Cigarette equivalent</b> uses the Berkeley Earth rule of thumb: a 24-hour average of 22 µg/m³ PM2.5 ≈ one cigarette a day. An illustration of dose, not a medical measure.</span></li>
+      <li><i data-lucide="shield-check"></i><span><b>Safety logic is deterministic.</b> Verdicts, risk scores and the severe-day protocol come from fixed rules over the live data. AI text only phrases and personalises — it never sets a safety verdict.</span></li>
+      <li><i data-lucide="leaf"></i><span><b>Impact figures</b> (CO₂ saved, exposure avoided) are estimates from your answers and standard per-trip factors, labelled as estimates.</span></li>
+    </ul>
+    <p style="font-size:14px">Sources: <a href="https://open-meteo.com/en/features" target="_blank" rel="noopener">Open-Meteo / CAMS air quality</a> · <a href="https://cpcb.nic.in/" target="_blank" rel="noopener">CPCB (India NAQI)</a> · <a href="https://www.who.int/publications/i/item/9789240034228" target="_blank" rel="noopener">WHO Global Air Quality Guidelines 2021</a> · <a href="https://berkeleyearth.org/air-pollution-and-cigarette-equivalence/" target="_blank" rel="noopener">Berkeley Earth — cigarette equivalence</a></p>
+    <p class="mini">Pollen data is not shown for India: the live pollen feed covers Europe only, and showing invented pollen numbers would be worse than showing none.</p>
+  </section>
+
+  <footer>ClearAir · Live data: Open-Meteo (Copernicus CAMS) · Not a medical device — for health decisions, follow your doctor and official CPCB advisories.</footer>
+</div>
+
+<script>
+"use strict";
+/* ========= State ========= */
+var S = {
+  place:{name:"Delhi", country:"India", lat:28.6139, lon:77.2090},
+  standard:"IN", lang:"en",
+  hourly:null, current:null, daily:null, wx:null,
+  pm25Now:0, cpcb:0, usAqi:0, updated:"",
+  persona:"general", habits:{}, audit:{}, tasks:[], planText:""
+};
+var $ = function(id){ return document.getElementById(id); };
+/* Instant button feedback: spinner + label swap the moment a button is tapped */
+function setBusy(btn,on,label){
+  if(!btn) return;
+  if(on){ if(btn.dataset.orig===undefined) btn.dataset.orig=btn.innerHTML; btn.disabled=true; btn.classList.add("busy"); btn.innerHTML='<span class="spin" aria-hidden="true"></span>'+(label||"Working…"); }
+  else{ btn.disabled=false; btn.classList.remove("busy"); if(btn.dataset.orig!==undefined){ btn.innerHTML=btn.dataset.orig; delete btn.dataset.orig; if(window.lucide) lucide.createIcons(); } }
+}
+
+/* ========= CPCB sub-index ========= */
+function subIndex(v, bp){ // bp: [[conc,lo,hi],...]
+  for(var i=0;i<bp.length;i++){ var b=bp[i];
+    if(v<=b[0] || i===bp.length-1){ var p=i===0?{c0:0,i0:0}:{c0:bp[i-1][0],i0:bp[i-1][2]};
+      if(b[0]===p.c0) return b[2];
+      return Math.round(p.i0 + (b[2]-p.i0)*(v-p.c0)/(b[0]-p.c0)); } }
+  return 500;
+}
+var BP = {
+  pm25:[[30,0,50],[60,51,100],[90,101,200],[120,201,300],[250,301,400],[500,401,500]],
+  pm10:[[50,0,50],[100,51,100],[200,101,200],[300,201,300],[400,301,400],[500,401,500]],
+  no2:[[40,0,50],[80,51,100],[180,101,200],[280,201,300],[400,301,400],[800,401,500]],
+  so2:[[40,0,50],[80,51,100],[380,101,200],[800,201,300],[1600,301,400],[3200,401,500]],
+  o3:[[50,0,50],[100,51,100],[168,101,200],[208,201,300],[748,301,400],[1200,401,500]],
+  co:[[1,0,50],[2,51,100],[10,101,200],[17,201,300],[34,301,400],[50,401,500]] // mg/m3, 8h
+};
+function catIN(a){ return a<=50?["Good","var(--good)"]:a<=100?["Satisfactory","var(--good)"]:a<=200?["Moderate","var(--mod)"]:a<=300?["Poor","var(--poor)"]:a<=400?["Very Poor","var(--vpoor)"]:["Severe","var(--severe)"]; }
+function catUS(a){ return a<=50?["Good","var(--good)"]:a<=100?["Moderate","var(--fair)"]:a<=150?["Unhealthy for sensitive groups","var(--mod)"]:a<=200?["Unhealthy","var(--poor)"]:a<=300?["Very Unhealthy","var(--vpoor)"]:["Hazardous","var(--severe)"]; }
+function fmt(n,d){ return n==null||isNaN(n)?"–":Number(n).toFixed(d==null?0:d); }
+function hourLabel(iso){ var d=new Date(iso); var h=d.getHours(); var ap=h>=12?"PM":"AM"; h=h%12||12; return h+" "+ap; }
+function dayLabel(iso){ return new Date(iso).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"}); }
+
+/* ========= Data loading ========= */
+function mean(a){ a=a.filter(function(x){return x!=null&&!isNaN(x);}); return a.length?a.reduce(function(s,x){return s+x;},0)/a.length:0; }
+function load(lat,lon,name,country){
+  S.place={name:name,country:country||"",lat:lat,lon:lon};
+  $("loadErr").hidden=true;
+  var aq="https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lon+
+    "&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi,european_aqi&forecast_days=7&past_days=7&timezone=auto";
+  var wx="https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,uv_index&timezone=auto";
+  Promise.all([fetch(aq).then(function(r){return r.json();}), fetch(wx).then(function(r){return r.json();})])
+  .then(function(res){
+    var a=res[0]; S.hourly=a.hourly; S.current=a.current; S.wx=res[1].current;
+    // CPCB from trailing 24h means
+    var times=a.hourly.time, nowIdx=times.length-1;
+    var cur=new Date(a.current.time).getTime();
+    for(var i=0;i<times.length;i++){ if(new Date(times[i]).getTime()<=cur) nowIdx=i; }
+    S.nowIdx=nowIdx;
+    function trail(key,h){ var s=[],from=Math.max(0,nowIdx-h+1); for(var j=from;j<=nowIdx;j++) s.push(a.hourly[key][j]); return mean(s); }
+    S.trail={ pm25:trail("pm2_5",24), pm10:trail("pm10",24), no2:trail("nitrogen_dioxide",24), so2:trail("sulphur_dioxide",24), o3:trail("ozone",8), co:trail("carbon_monoxide",8)/1000 };
+    var subs={ pm25:subIndex(S.trail.pm25,BP.pm25), pm10:subIndex(S.trail.pm10,BP.pm10), no2:subIndex(S.trail.no2,BP.no2), so2:subIndex(S.trail.so2,BP.so2), o3:subIndex(S.trail.o3,BP.o3), co:subIndex(S.trail.co,BP.co) };
+    S.subs=subs; S.cpcb=Math.max(subs.pm25,subs.pm10,subs.no2,subs.so2,subs.o3,subs.co);
+    S.domKey=Object.keys(subs).reduce(function(m,k){return subs[k]>subs[m]?k:m;},"pm25");
+    S.usAqi=a.current.us_aqi||0; S.pm25Now=a.current.pm2_5||S.trail.pm25;
+    S.fetchedAt=Date.now();
+    S.updated=new Date(a.current.time).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+    renderAll(); loadCleanerDirs(); updatePrompt(); tickLive(); setBusy($("searchBtn"),false); setBusy($("locBtn"),false);
+  }).catch(function(){ setBusy($("searchBtn"),false); setBusy($("locBtn"),false); var e=$("loadErr"); e.hidden=false; e.textContent="Live data could not load. Check the internet connection and search again — no sample numbers are shown in place of real data."; $("placeLine").textContent="Live data unavailable — check connection and retry"; $("liveTxt").textContent="LIVE · unavailable — check connection"; $("cleanerDir").textContent="Nearby comparison unavailable while live data is down."; $("ventWindow").textContent="Ventilation guidance appears once live data loads."; });
+}
+function geocode(q,cb){
+  fetch("https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(q)+"&count=1&language=en&format=json")
+  .then(function(r){return r.json();}).then(function(j){ if(j.results&&j.results.length){ var g=j.results[0]; cb(g.latitude,g.longitude,g.name,(g.admin1?g.admin1+", ":"")+(g.country||"")); } else { setBusy($("searchBtn"),false); var e=$("loadErr"); e.hidden=false; e.textContent="Place not found: "+q; } })
+  .catch(function(){ setBusy($("searchBtn"),false); });
+}
+
+/* ========= Render ========= */
+function renderAll(){
+  if(!S.current){ $("stdNote").textContent = S.standard==="IN" ? "National AQI (CPCB), 0–500 — from the trailing 24-hour mean." : "US EPA AQI, 0–500, from the live feed."; return; }
+  $("placeLine").textContent = S.place.name+(S.place.country?", "+S.place.country:"")+" · Live now";
+  var aqi = S.standard==="IN"?S.cpcb:S.usAqi;
+  var c = S.standard==="IN"?catIN(aqi):catUS(aqi);
+  $("aqiNum").textContent=fmt(aqi); $("aqiCat").textContent=c[0]; $("aqiDot").style.background=c[1]; $("aqiDot").style.color=c[1];
+  $("stdNote").textContent = S.standard==="IN" ? "National AQI (CPCB), 0–500 — from the trailing 24-hour mean." : "US EPA AQI, 0–500, from the live feed. The two scales score the same air differently.";
+  var names={pm25:"PM2.5",pm10:"PM10",no2:"NO₂",so2:"SO₂",o3:"Ozone",co:"CO"};
+  $("domPol").textContent="Dominant: "+names[S.domKey];
+  $("cigEq").textContent="≈ "+(S.trail.pm25/22).toFixed(1)+" cigarettes/day equivalent";
+  $("updatedAt").textContent="Updated "+S.updated;
+  $("headlineAdvice").textContent = headline(aqi);
+  updateVoiceSimple();
+  $("severeBox").hidden = S.cpcb<=300;
+  $("severeChecklist").hidden = S.cpcb<=300;
+  renderPollutants(); renderWx(); renderRisk(); renderForecast(); renderSim(); renderBest(); renderVent(); renderPlanner();
+  $("mapFrame").src="https://www.openstreetmap.org/export/embed.html?bbox="+(S.place.lon-0.09)+"%2C"+(S.place.lat-0.05)+"%2C"+(S.place.lon+0.09)+"%2C"+(S.place.lat+0.05)+"&layer=mapnik&marker="+S.place.lat+"%2C"+S.place.lon;
+}
+function headline(a){
+  if(S.standard==="IN"){ if(a<=50)return "Air is good today. Outdoor plans need no changes."; if(a<=100)return "Air is acceptable. Sensitive people should watch symptoms on long outings."; if(a<=200)return "Moderate air. Shorten hard outdoor exercise; keep windows closed at peak hours."; if(a<=300)return "Poor air. Move exercise indoors, use an N95 outside, and run the plan below."; if(a<=400)return "Very poor air. Avoid outdoor exertion; the severe-day guidance on this page applies."; return "Severe air. Stay indoors as much as possible and follow the protection protocol."; }
+  if(a<=50)return "Air is good today (US scale)."; if(a<=100)return "Moderate on the US scale — acceptable for most people."; if(a<=150)return "Unhealthy for sensitive groups on the US scale."; if(a<=200)return "Unhealthy on the US scale — reduce outdoor exertion."; if(a<=300)return "Very unhealthy on the US scale."; return "Hazardous on the US scale — stay indoors.";
+}
+var POLS=[["pm25","PM2.5","µg/m³"],["pm10","PM10","µg/m³"],["no2","NO₂","µg/m³"],["o3","Ozone","µg/m³"],["so2","SO₂","µg/m³"],["co","CO","mg/m³"]];
+function renderPollutants(){
+  var cur={pm25:S.current.pm2_5,pm10:S.current.pm10,no2:S.current.nitrogen_dioxide,o3:S.current.ozone,so2:S.current.sulphur_dioxide,co:(S.current.carbon_monoxide||0)/1000};
+  $("polGrid").innerHTML = POLS.map(function(p){
+    var v=cur[p[0]], sub=S.subs[p[0]], pct=Math.min(100,sub/5);
+    var extra = p[0]==="pm25" ? '<div class="mini" style="margin-top:4px">'+(S.trail.pm25/15).toFixed(1)+'× the WHO 24-h guideline (24-h mean '+fmt(S.trail.pm25,1)+' µg/m³)</div>' : '<div class="mini" style="margin-top:4px">CPCB sub-index '+sub+'</div>';
+    return '<div class="pol"><div class="name"><span>'+p[1]+'</span><span class="pill" style="padding:1px 8px">Sub '+sub+'</span></div><div class="val">'+fmt(v, p[0]==="co"?2:1)+' <span class="unit">'+p[2]+'</span></div><div class="bar"><i style="width:'+pct+'%"></i></div>'+extra+'</div>';
+  }).join("");
+}
+function renderWx(){
+  var w=S.wx; if(!w) return;
+  $("wxTemp").textContent=fmt(w.temperature_2m,0)+"°C"; $("wxHum").textContent=fmt(w.relative_humidity_2m,0)+"%";
+  $("wxWind").textContent=fmt(w.wind_speed_10m,0)+" km/h"; $("wxUv").textContent=fmt(w.uv_index,1);
+  var dirs=["N","NE","E","SE","S","SW","W","NW"]; var d=dirs[Math.round((w.wind_direction_10m||0)/45)%8];
+  $("wxNote").textContent = (w.wind_speed_10m<8 ? "Light wind from the "+d+" — pollution is dispersing slowly and tends to build up. " : "Wind from the "+d+" at "+fmt(w.wind_speed_10m,0)+" km/h is helping disperse pollution. ") + (w.relative_humidity_2m>75 ? "High humidity makes particles swell and feel heavier on the chest." : "Humidity is in a comfortable range.");
+}
+/* Best window + cleaner direction */
+function next24(){ var out=[]; for(var i=S.nowIdx;i<Math.min(S.hourly.time.length,S.nowIdx+24);i++) out.push({t:S.hourly.time[i],pm:S.hourly.pm2_5[i],aqi:S.hourly.us_aqi?S.hourly.us_aqi[i]:null}); return out; }
+function bestWindow(){ if(!S.hourly) return null; var h=next24(),best=null; for(var i=0;i+1<h.length;i++){ var avg=(h[i].pm+h[i+1].pm)/2; if(!best||avg<best.avg) best={avg:avg,from:h[i].t,to:h[i+1].t}; } return best; }
+function renderBest(){
+  var b=bestWindow(); if(!b) return;
+  $("bestWindow").textContent=hourLabel(b.from)+" – "+hourLabel(b.to);
+  $("bestDetail").textContent="Expected PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³ in that slot — the lowest 2 hours in the next 24. Worst hours are marked in the forecast below.";
+  var worst=next24().reduce(function(m,x){return x.pm>m.pm?x:m;},{pm:-1});
+  S.worst=worst;
+}
+function loadCleanerDirs(){
+  var offs=[["North",0.045,0],["South",-0.045,0],["East",0,0.055],["West",0,-0.055]],done=0,res=[];
+  offs.forEach(function(o){
+    fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+(S.place.lat+o[1])+"&longitude="+(S.place.lon+o[2])+"&current=pm2_5")
+    .then(function(r){return r.json();}).then(function(j){ res.push({d:o[0],pm:j.current.pm2_5}); if(++done===4){ res.sort(function(a,b){return a.pm-b.pm;}); var here=S.pm25Now, best=res[0];
+      $("cleanerDir").innerHTML = best.pm<here ? "Modelled air is cleanest toward the <b>"+best.d+"</b> of here right now (PM2.5 ≈ "+fmt(best.pm,0)+" vs "+fmt(here,0)+" µg/m³ here). If you are heading out, favour parks and lanes in that direction over main roads." : "Air is fairly uniform around here right now (PM2.5 "+fmt(res[0].pm,0)+"–"+fmt(res[3].pm,0)+" µg/m³ within ~5 km). Route choice matters less than timing — use the best window above."; } })
+    .catch(function(){ if(++done===4) $("cleanerDir").textContent="Nearby comparison unavailable right now."; });
+  });
+}
+/* Risk */
+var PERSONAS=[["general","General adult","person-standing",1],["children","Children","baby",1.5],["elderly","Elderly (60+)","accessibility",1.4],["asthma","Asthma / lungs","stethoscope",1.8],["heart","Heart condition","heart-pulse",1.6],["pregnant","Pregnant","heart",1.5],["athlete","Athlete / outdoor worker","dumbbell",1.3]];
+var ACTF={walk:{f:1,label:"walking"},run:{f:2.1,label:"running"},cycle:{f:1.7,label:"cycling"},commute:{f:0.9,label:"commuting"},play:{f:1.6,label:"playing outside"},work:{f:1.4,label:"working outdoors"}};
+function buildPersonas(){
+  $("personaChips").innerHTML=PERSONAS.map(function(p){return '<button type="button" class="chip" data-p="'+p[0]+'" aria-pressed="'+(S.persona===p[0])+'"><i data-lucide="'+p[2]+'"></i>'+p[1]+'</button>';}).join("");
+  $("personaChips").querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ S.persona=b.getAttribute("data-p");
+    $("personaChips").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+    renderRisk(); }); });
+  if(window.lucide) lucide.createIcons();
+}
+function calcRisk(){
+  var per=PERSONAS.filter(function(p){return p[0]===S.persona;})[0];
+  var act=ACTF[$("riskAct").value], dur=+$("riskDur").value, mask=$("maskToggle").getAttribute("aria-pressed")==="true";
+  var base=Math.min(100, S.cpcb/5); // CPCB 500 -> 100
+  var score=base*per[3]*act.f*(0.55+dur/200); if(mask) score*=0.35;
+  score=Math.max(1,Math.min(100,Math.round(score)));
+  var verdict,why;
+  if(score<25){verdict="Fine to go — normal precautions";why="At this level, "+act.label+" for "+dur+" minutes is reasonable for a "+per[1].toLowerCase()+" profile in the current air.";}
+  else if(score<50){verdict="Okay with care";why="Keep the outing near "+dur+" minutes, prefer parks and inner lanes over main roads, and stop if breathing feels heavy.";}
+  else if(score<75){verdict="Cut it short — or mask up";why="This combination pushes exposure high. Halve the time, shift to the best window ("+$("bestWindow").textContent+"), or wear a fitted N95.";}
+  else {verdict="Skip it outdoors today";why="For a "+per[1].toLowerCase()+" profile, "+act.label+" for "+dur+" minutes in this air is not worth it. Move it indoors or to the cleanest window.";}
+  if(mask&&score<75) why+=" The N95 is already counted in this score.";
+  return {score:score,verdict:verdict,why:why};
+}
+function renderRisk(){
+  if(!S.current) return;
+  $("riskDurVal").textContent=$("riskDur").value+" min";
+  var r=calcRisk(); $("riskNum").textContent=r.score; $("riskVerdict").textContent=r.verdict; $("riskWhy").textContent=r.why;
+  var ring=$("ringFg"); ring.style.strokeDashoffset=(351.8*(1-r.score/100)).toFixed(1);
+  ring.style.stroke = r.score<25?"var(--good)":r.score<50?"var(--mod)":r.score<75?"var(--poor)":"var(--severe)";
+}
+/* Forecast chart + history */
+function renderForecast(){
+  var h=next24(); if(!h.length) return;
+  var max=Math.max.apply(null,h.map(function(x){return x.pm;}))*1.15, W=720,H=170,pad=26,bw=(W-pad*2)/h.length;
+  var bars=h.map(function(x,i){ var bh=(x.pm/max)*(H-50); var isWorst=S.worst&&x.t===S.worst.t;
+    return '<rect x="'+(pad+i*bw+1).toFixed(1)+'" y="'+(H-24-bh).toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="3" fill="'+(isWorst?"var(--poor)":"var(--ink3)")+'" opacity="'+(isWorst?1:0.55)+'"><title>'+hourLabel(x.t)+": PM2.5 "+fmt(x.pm,0)+' µg/m³</title></rect>'+(i%3===0?'<text x="'+(pad+i*bw+bw/2).toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--ink3)" text-anchor="middle">'+hourLabel(x.t)+'</text>':""); }).join("");
+  $("fcChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="presentation">'+bars+'</svg><p class="mini">Bars: hourly PM2.5 (µg/m³), next 24 hours. Dark red = worst hour.</p>';
+  $("worstHour").textContent=hourLabel(S.worst.t); $("worstHourV").textContent="PM2.5 "+fmt(S.worst.pm,0)+" µg/m³ — keep windows shut and exercise indoors around then.";
+  // daily means from hourly
+  var byDay={}; S.hourly.time.forEach(function(t,i){ var d=t.slice(0,10); (byDay[d]=byDay[d]||[]).push(S.hourly.pm2_5[i]); });
+  var days=Object.keys(byDay).sort().map(function(d){return {d:d,v:mean(byDay[d])};});
+  var today=new Date().toISOString().slice(0,10);
+  var past=days.filter(function(x){return x.d<today;}).slice(-7);
+  if(past.length){ var b=past.reduce(function(m,x){return x.v<m.v?x:m;}), w=past.reduce(function(m,x){return x.v>m.v?x:m;});
+    $("bestDay").textContent=fmt(b.v,0); $("bestDayV").textContent=dayLabel(b.d)+" · avg PM2.5 µg/m³";
+    $("worstDay").textContent=fmt(w.v,0); $("worstDayV").textContent=dayLabel(w.d)+" · avg PM2.5 µg/m³"; }
+  var tom=days.filter(function(x){return x.d>today;})[0];
+  if(tom){ $("tomorrowV").textContent=fmt(tom.v,0); $("tomorrowNote").textContent="Avg PM2.5 µg/m³ expected "+dayLabel(tom.d)+(tom.v<S.trail.pm25?" — a better day than today; front-load outdoor plans.":" — no relief yet; keep indoor plans first."); }
+}
+/* Simulator */
+function renderSim(){
+  if(!S.current) return;
+  var mins=+$("simDur").value, rate=+$("simInt").value;
+  $("simDurVal").textContent=mins+" min";
+  var dose=S.pm25Now*rate*(mins/60);
+  $("simDose").textContent=fmt(dose,0)+" µg"; $("simDoseMask").textContent=fmt(dose*0.05,0)+" µg";
+}
+/* Habits score */
+var HABITS=[["mask","N95 outside",15],["window","Windows timed to clean hours",15],["purifier","Purifier / wet-mop indoors",15],["commute","Low-emission commute",20],["exercise","Exercise in best window / indoors",20],["plants","No incense / coil today",15]];
+function updateScore(){ var sc=HABITS.reduce(function(s,h){return s+(S.habits[h[0]]?h[2]:0);},0); $("scoreNum").textContent=sc; $("scoreRing").style.strokeDashoffset=(351.8*(1-sc/100)).toFixed(1); }
+function buildHabits(){
+  $("habitBtns").innerHTML=HABITS.map(function(h){return '<button type="button" class="chip" data-h="'+h[0]+'" aria-pressed="'+!!S.habits[h[0]]+'"><i data-lucide="check"></i>'+h[1]+' · '+h[2]+'</button>';}).join("");
+  $("habitBtns").querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ var k=b.getAttribute("data-h"); S.habits[k]=!S.habits[k]; b.setAttribute("aria-pressed", S.habits[k]?"true":"false"); updateScore(); }); });
+  updateScore();
+  if(window.lucide) lucide.createIcons();
+}
+/* Planner */
+function renderPlanner(){
+  var el=$("taskList"); $("taskEmpty").style.display=S.tasks.length?"none":"block";
+  el.innerHTML=S.tasks.map(function(t,i){
+    var note="";
+    if(t.kind==="outdoor"&&S.hourly){ var h=next24(); var at=h.filter(function(x){return hourLabel(x.t)===t.timeLabel;})[0]; var b=bestWindow();
+      if(at&&b&&at.pm>b.avg*1.25){ t.moved=hourLabel(b.from); note='<span class="impact">Moved to '+t.moved+' — PM2.5 ≈ '+fmt(b.avg,0)+' instead of ≈ '+fmt(at.pm,0)+' µg/m³ at '+t.timeLabel+'.</span>'; }
+      else note='<span class="mini">Already in a reasonably clean slot.</span>'; }
+    if(t.kind==="fixed") note='<span class="mini">Fixed — keep the time; mask and route advice apply.</span>';
+    if(t.kind==="indoor") note='<span class="mini">Indoor — check the ventilation window below.</span>';
+    return '<div class="taskrow"><i data-lucide="'+(t.kind==="fixed"?"lock":t.kind==="indoor"?"house":"trees")+'"></i><span class="t">'+t.name+'</span><span class="pill">'+t.timeLabel+'</span>'+note+'<button class="btn" type="button" data-del="'+i+'" style="margin-left:auto;min-height:36px;padding:4px 12px">Remove</button></div>';
+  }).join("");
+  el.querySelectorAll("[data-del]").forEach(function(b){ b.addEventListener("click",function(){ S.tasks.splice(+b.getAttribute("data-del"),1); renderPlanner(); }); });
+  if(window.lucide) lucide.createIcons();
+}
+/* Ventilation */
+function renderVent(){
+  var b=bestWindow(); if(!b) return;
+  $("ventWindow").innerHTML = S.cpcb>200 ? "Outdoor air is poor today. Ventilate briefly in the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — then close windows and run the purifier. Skip the usual early-morning full-house airing on days like this." : "Open windows during the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — and close them before the worst hour, "+hourLabel(S.worst.t)+".";
+}
+/* Severe checklist */
+var SEVERE=["Seal the bedroom door gap and run the purifier on high for 30 minutes","Wet-mop floors instead of dry sweeping (dry sweeping re-suspends dust)","Cook with the lid on and exhaust on; avoid frying-heavy meals today","Keep fitted N95s by the door for anyone who must step out","Postpone outdoor exercise and children’s outdoor play","Check on elders and anyone with asthma — reliever inhaler within reach"];
+$("severeList").innerHTML=SEVERE.map(function(s){return '<li><i data-lucide="circle-alert"></i><span>'+s+'</span></li>';}).join("");
+/* Indoor audit */
+var AUDIT=[["incense","Incense / dhoop / agarbatti daily"],["coil","Mosquito coils"],["smoke","Smoking indoors"],["dry-sweep","Dry sweeping / jhadoo"],["no-exhaust","No kitchen exhaust"],["candles","Scented candles often"],["road-window","Windows open to a busy road at peak hours"]];
+function buildAudit(){
+  $("auditChips").innerHTML=AUDIT.map(function(a){return '<button type="button" class="chip" data-a="'+a[0]+'" aria-pressed="'+!!S.audit[a[0]]+'">'+a[1]+'</button>';}).join("");
+  $("auditChips").querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ var k=b.getAttribute("data-a"); S.audit[k]=!S.audit[k]; b.setAttribute("aria-pressed", S.audit[k]?"true":"false"); renderAudit(); }); });
+}
+var FIXES={ "incense":["Move dhoop to a ventilated spot and cut to once a day","Burning incense can spike indoor PM2.5 as much as traffic outside.","₹0"],
+ "coil":["Switch to a plug-in vaporiser or net + repellent cream","One coil overnight ≈ the smoke of many cigarettes in a closed room.","₹150–300/month"],
+ "smoke":["Move smoking fully outside, away from windows","Indoor smoke lingers on walls and clothes for hours (third-hand smoke).","₹0"],
+ "dry-sweep":["Wet-mop, or sweep only after sprinkling water","Dry sweeping throws settled dust straight back into breathing height.","₹0"],
+ "no-exhaust":["Use a window exhaust or cook with the door closed + window open","Gas cooking without exhaust raises indoor NO₂ sharply.","₹1,500–3,000 one-time"],
+ "candles":["Keep candles occasional and short","Scented candles add PM and VOCs to already-loaded air.","₹0"],
+ "road-window":["Open road-facing windows only in the best window (above)","Peak-hour traffic is the single biggest indoor PM source for road-facing homes.","₹0"] };
+function renderAudit(){
+  var keys=Object.keys(S.audit).filter(function(k){return S.audit[k];});
+  $("auditOut").innerHTML = keys.length? keys.map(function(k){ var f=FIXES[k]; return '<div class="act"><i data-lucide="wrench"></i><div><b>'+f[0]+'</b><p>'+f[1]+'</p><span class="impact">Cost: '+f[2]+'</span></div></div>'; }).join("") : '<p class="mini">Nothing selected — if none of these apply, your indoor sources are already in good shape; focus on outdoor timing above.</p>';
+  if(window.lucide) lucide.createIcons();
+}
+/* ========= Plan ========= */
+var T={
+ en:{ morning:"Morning", commute:"Commute", indoor:"Indoor", evening:"Evening",
+   openWin:function(b){return "Open windows only in the clean slot "+b+" today; keep them shut at peak hours.";},
+   whyWin:"Ventilating at the wrong hour can import more PM2.5 than a full day of indoor sources combined.",
+   mask:"Keep a fitted N95 by the door; wear it for any outing over 20 minutes.",
+   whyMask:"A fitted N95 cuts inhaled PM2.5 by roughly 95% — the single biggest personal reduction available today." },
+ hi:{ morning:"सुबह", commute:"आना-जाना", indoor:"घर के अंदर", evening:"शाम",
+   openWin:function(b){return "आज खिड़कियाँ सिर्फ साफ़ समय "+b+" में खोलें; भीड़ वाले घंटों में बंद रखें।";},
+   whyWin:"गलत समय पर खिड़की खोलने से बाहर की PM2.5 पूरे दिन के घरेलू स्रोतों से ज़्यादा अंदर आ सकती है।",
+   mask:"दरवाज़े के पास फिटेड N95 रखें; 20 मिनट से लंबी बाहर की यात्रा पर पहनें।",
+   whyMask:"फिटेड N95 साँस के साथ अंदर जाने वाली PM2.5 को लगभग 95% तक घटाता है।",
+   openWinR:function(b){return "Aaj khidkiyaan sirf saaf samay "+b+" mein kholein; bheed wale ghanton mein band rakhein.";},
+   maskR:"Darwaaze ke paas fitted N95 rakhein; 20 minute se lambi bahar ki yaatra par pehnein." }
+};
+function buildPlan(){
+  var lang=$("pLang").value, t=T[lang], b=bestWindow();
+  var bTxt=b?hourLabel(b.from)+"–"+hourLabel(b.to):"—";
+  var tr=$("pTransport").value, cook=$("pCook").value, home=$("pHome").value, clean=$("pClean").value, fam=$("pFamily").value;
+  var secs=[];
+  var m=[{a:t.openWin(bTxt),w:t.whyWin,i:"Exposure avoided: up to 40% of daily indoor PM2.5 load (estimate)"},{a:t.mask,w:t.whyMask,i:"Exposure avoided: ≈95% of PM2.5 while worn (estimate)"}];
+  if(fam!=="general") m.push({a:"Give the most sensitive person the inner, road-farthest room today.",w:"PM2.5 falls with distance from the road-facing wall; sensitive lungs benefit first.",i:"Exposure avoided: meaningful on poor days (estimate)"});
+  secs.push({h:t.morning,icon:"sunrise",items:m});
+  var c=[];
+  if(tr==="car") c.push({a:"Shift the commute to before the morning peak, or switch 2 days a week to metro/carpool.",w:"Peak-hour cabin air sits in the densest exhaust plume of the day; earlier roads are measurably cleaner.",i:"CO₂ saved: ≈2.3 kg per metro day (estimate) · Exposure avoided: peak-plume hours"});
+  else if(tr==="bike"||tr==="auto") c.push({a:"Take inner lanes / park-side routes and wear the N95 under the helmet strap line.",w:"Open vehicles breathe traffic-level air directly; one street away from the main road, PM drops noticeably.",i:"Exposure avoided: up to 30% on rerouted trips (estimate)"});
+  else if(tr==="metro") c.push({a:"Keep the metro — add a mask for the station-to-home walk.",w:"Underground metro air is far cleaner than road air; the walk is the exposed part.",i:"CO₂ saved: ≈2.3 kg/day vs car (estimate)"});
+  else if(tr==="cycle") c.push({a:"Move cycling to the best window ("+bTxt+") or indoors today.",w:"Cycling triples breathing rate, so timing matters more for you than for anyone.",i:"Exposure avoided: largest single swap in this plan (estimate)"});
+  else c.push({a:"Batch errands into one trip in the best window ("+bTxt+").",w:"Fewer, better-timed outings beat several short peak-hour ones.",i:"Exposure avoided: fewer peak-hour trips (estimate)"});
+  secs.push({h:t.commute,icon:"route",items:c});
+  var ind=[];
+  if(cook==="chulha") ind.push({a:"Cook with the door open / near ventilation; plan a shift to LPG or induction if possible.",w:"Biomass smoke is the strongest indoor PM2.5 source in Indian homes.",i:"Exposure avoided: the largest indoor reduction available (estimate)"});
+  else if(cook==="gas") ind.push({a:"Always cook with exhaust on and a lid on the pan.",w:"Gas flames add NO₂ indoors; a lid + exhaust removes most of it at source.",i:"Exposure avoided: most cooking NO₂ (estimate)"});
+  else ind.push({a:"Induction cooking already keeps combustion out of your kitchen — keep the exhaust habit for frying fumes.",w:"Frying fumes are PM too, even without a flame.",i:"Exposure avoided: frying-fume peaks (estimate)"});
+  if(clean==="purifier") ind.push({a:"Run the purifier on auto in the bedroom, doors closed, from an hour before sleep.",w:"Sleep is 7–8 hours of continuous breathing — clean bedroom air is the highest-value air of the day.",i:"Exposure avoided: overnight dose, every night (estimate)"});
+  else if(clean==="plants") ind.push({a:"Plants help mood, not PM2.5 — add wet-mopping and, if budget allows, a purifier for the bedroom first.",w:"Room plants remove negligible PM2.5 at real-world densities; spend where the hours are.",i:"Cost honesty: purifier ₹8,000–15,000 one-time (estimate)"});
+  else ind.push({a:"Start with wet-mopping daily and sealing the bedroom door gap; consider a bedroom purifier next.",w:"Wet-mopping stops settled dust re-entering the air — free and immediate.",i:"Cost: ₹0 to start"});
+  if(home==="flat-road") ind.push({a:"Keep road-facing windows shut at peak hours; ventilate from the rear side if you have one.",w:"Road-facing openings import traffic PM directly.",i:"Exposure avoided: peak-hour inflow (estimate)"});
+  secs.push({h:t.indoor,icon:"house",items:ind});
+  var ev=[{a:"Evening walk / play only in the best remaining window; otherwise indoor activity.",w:"Evening traffic + falling temperatures trap pollution near the ground.",i:"Exposure avoided: evening peak (estimate)"}];
+  if(S.cpcb>200) ev.push({a:"Tonight: purifier on, windows shut, tomorrow’s outings pre-shifted to the clean slot.",w:"Poor days rarely fix themselves by evening in winter.",i:"Exposure avoided: full evening peak (estimate)"});
+  secs.push({h:t.evening,icon:"moon",items:ev});
+  return secs;
+}
+function renderPlan(){
+  if(!S.hourly){ $("planOut").innerHTML='<p class="mini">Live data has not loaded yet — the plan needs the real forecast, so it is waiting rather than guessing.</p>'; return; }
+  var secs=buildPlan();
+  $("planOut").innerHTML=secs.map(function(s){ return '<div class="plan-sec"><h3><i data-lucide="'+s.icon+'"></i>'+s.h+'</h3>'+s.items.map(function(it){ return '<div class="act"><i data-lucide="check-circle-2"></i><div><b>'+it.a+'</b><p><i>Why it matters:</i> '+it.w+'</p><span class="impact">'+it.i+'</span></div></div>'; }).join("")+'</div>'; }).join("");
+  S.planText=secs.map(function(s){ return s.h+":\n"+s.items.map(function(it){return "- "+it.a+" ("+it.i+")";}).join("\n"); }).join("\n\n");
+  $("planState").textContent="Plan updated from live data for "+S.place.name+".";
+  if(window.lucide) lucide.createIcons();
+}
+function updatePrompt(){
+  var p=["You are ClearAir, a careful air-quality assistant for Indian families.",
+  "LOCATION: "+S.place.name+" · CPCB NAQI now: "+fmt(S.cpcb)+" ("+catIN(S.cpcb)[0]+") · US AQI: "+fmt(S.usAqi)+" · PM2.5 24-h mean: "+fmt(S.trail?S.trail.pm25:0,1)+" µg/m³ · Best window: "+$("bestWindow").textContent,
+  "HOUSEHOLD: commute="+$("pTransport").value+", cooking="+$("pCook").value+", home="+$("pHome").value+", cleaning="+$("pClean").value+", family="+$("pFamily").value,
+  "TASK: Return a structured plan with exactly four sections — Morning, Commute, Indoor, Evening. Each action must include: the action, one line on why it matters, and an estimated impact labelled as an estimate.",
+  "RULES: Never soften a safety verdict set by the deterministic engine. No medical diagnosis. If data is missing, say so instead of inventing numbers. Language: "+($("pLang").value==="hi"?"Hindi":"English")+"."].join("\n");
+  $("promptView").textContent=p;
+}
+/* ========= Voice — listen instead of reading ========= */
+var voiceOn=false;
+function voiceSupported(){ return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window; }
+function pickVoice(lang){
+  if(!voiceSupported()) return null;
+  var vs=speechSynthesis.getVoices()||[], i, v;
+  var want = lang==="hi" ? ["hi-IN","hi"] : ["en-IN","en_IN","en-GB","en-US","en"];
+  for(var w=0;w<want.length;w++){ for(i=0;i<vs.length;i++){ v=vs[i]; if(v.lang && v.lang.replace("_","-").toLowerCase()===want[w].toLowerCase()) return v; } }
+  for(i=0;i<vs.length;i++){ v=vs[i]; if(v.lang && v.lang.toLowerCase().indexOf(lang=== "hi"?"hi":"en")===0) return v; }
+  return null;
+}
+function setVoiceUI(on){
+  voiceOn=on;
+  $("voiceStop").hidden=!on;
+  $("voiceBtn").classList.toggle("speaking",on);
+  if(!on) $("voiceStatus").textContent="";
+}
+var speakSession=0, speakChunksLeft=0, resumeTimer=null;
+function stopSpeaking(){ speakSession++; if(resumeTimer){ clearInterval(resumeTimer); resumeTimer=null; } if(voiceSupported()) speechSynthesis.cancel(); setVoiceUI(false); }
+function hindiVoiceReady(){
+  if(!voiceSupported()) return false;
+  var vs=speechSynthesis.getVoices()||[];
+  for(var i=0;i<vs.length;i++){ var l=(vs[i].lang||"").replace("_","-").toLowerCase(); if(l==="hi"||l.indexOf("hi-")===0) return true; }
+  return false;
+}
+function refreshVoiceNote(){
+  var n=$("voiceNote"); if(!n) return;
+  var vs=voiceSupported()?(speechSynthesis.getVoices()||[]):[];
+  n.hidden = !(S.lang==="hi" && vs.length>0 && !hindiVoiceReady());
+}
+function ensureVoices(cb){
+  if(!voiceSupported()){ cb(); return; }
+  var vs=speechSynthesis.getVoices();
+  if(vs&&vs.length){ cb(); return; }
+  var done=false;
+  function fin(){ if(done) return; done=true; cb(); }
+  try{ speechSynthesis.addEventListener("voiceschanged",function h(){ try{ speechSynthesis.removeEventListener("voiceschanged",h); }catch(e){} fin(); }); }catch(e){}
+  setTimeout(fin,500);
+}
+/* Split into sentence-sized chunks: one long utterance is silently cut off by Chrome/Android TTS, a queue of short ones plays through. */
+function splitChunks(text){
+  var parts=[], cur="", words=String(text).replace(/\s+/g," ").split(" ");
+  words.forEach(function(w){
+    cur = cur ? cur+" "+w : w;
+    if(/[।.!?;]$/.test(w) || cur.length>=170){ parts.push(cur); cur=""; }
+  });
+  if(cur) parts.push(cur);
+  return parts.filter(function(p){ return p.trim().length>0; });
+}
+function startSpeaking(text,lang,fellBack){
+  var mySession=++speakSession;
+  if(resumeTimer){ clearInterval(resumeTimer); resumeTimer=null; }
+  speechSynthesis.cancel();
+  setVoiceUI(true);
+  $("voiceStatus").textContent = (S.lang==="hi" ? "बोल रहे हैं… बंद करने के लिए Stop दबाएँ।" : "Speaking… tap Stop to end.") + (fellBack ? (S.lang==="hi" ? " (Hindi आवाज़ pack नहीं मिला — Hinglish में बोल रहे हैं।)" : " (No Hindi voice pack found — speaking Hinglish instead.)") : "");
+  var chunks=splitChunks(text);
+  if(!chunks.length){ setVoiceUI(false); return; }
+  speakChunksLeft=chunks.length;
+  /* Speak only after a short delay: speak() in the same tick as cancel() is dropped by Android TTS. */
+  setTimeout(function(){
+    if(mySession!==speakSession) return;
+    var v=pickVoice(lang);
+    chunks.forEach(function(c){
+      var u=new SpeechSynthesisUtterance(c);
+      u.lang = lang==="hi" ? "hi-IN" : "en-IN";
+      if(v) u.voice=v;
+      u.rate=0.95; u.pitch=1;
+      function done(){ if(mySession!==speakSession) return; speakChunksLeft--; if(speakChunksLeft<=0){ if(resumeTimer){ clearInterval(resumeTimer); resumeTimer=null; } setVoiceUI(false); } }
+      u.onend=done; u.onerror=done;
+      speechSynthesis.speak(u);
+    });
+    /* Chrome stalls long speech after ~15s unless resume() is called periodically. */
+    resumeTimer=setInterval(function(){
+      if(mySession!==speakSession){ clearInterval(resumeTimer); resumeTimer=null; return; }
+      if(speechSynthesis.speaking) speechSynthesis.resume();
+    },5000);
+  },150);
+}
+function speakText(text,lang,romanText){
+  if(!voiceSupported()){ $("voiceStatus").textContent = lang==="hi" ? "इस phone / browser में आवाज़ support नहीं है — वही बात नीचे आसान शब्दों में लिखी है।" : "Voice is not supported in this browser — the same message is written below in simple words."; return; }
+  setVoiceUI(true); $("voiceStatus").textContent = lang==="hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
+  ensureVoices(function(){
+    var useText=text, useLang=lang, fellBack=false;
+    /* No Hindi voice on this phone: an English-only engine stays silent on Devanagari, so speak the same report in Roman Hinglish with the English voice — audible and understood. */
+    if(lang==="hi" && !hindiVoiceReady() && romanText){ useText=romanText; useLang="en"; fellBack=true; }
+    startSpeaking(useText,useLang,fellBack);
+  });
+}
+function bandOf(a){ return a<=50?0:a<=100?1:a<=200?2:a<=300?3:a<=400?4:5; }
+function simpleLine(lang){
+  var a=S.cpcb, b=bandOf(a);
+  if(lang==="hi"){
+    var cat=["बहुत अच्छी","अच्छी","ठीक-ठाक, ज़्यादा अच्छी नहीं","खराब","बहुत खराब","ख़तरनाक"][b];
+    var act=["आज बाहर के सारे काम आराम से कर सकते हैं।","बाहर जा सकते हैं; नाज़ुक सेहत वालों को थोड़ा ध्यान रखना चाहिए।","लंबी दौड़ या भारी कसरत बाहर न करें; छोटे काम चलेंगे।","बाहर कम जाएँ; जाना ज़रूरी हो तो N95 मास्क पहनें। बच्चे और बुज़ुर्ग अंदर रहें।","बाहर बिल्कुल कम जाएँ; N95 मास्क ज़रूर पहनें। बच्चे, बुज़ुर्ग और दमा के मरीज़ अंदर ही रहें।","घर के अंदर ही रहें। बाहर जाना बहुत ज़रूरी हो तभी N95 मास्क पहनकर जाएँ।"][b];
+    return "आज "+S.place.name+" की हवा "+cat+" है। हवा का नंबर (AQI) "+fmt(a)+" है। "+act;
+  }
+  var catE=["very good","good","okay, not great","poor","very poor","dangerous"][b];
+  var actE=["All outdoor plans are fine today.","Going out is fine; people with sensitive health should take a little care.","Avoid long runs or heavy exercise outside; short outings are okay.","Go out less; if you must go, wear an N95 mask. Children and elders should stay inside.","Go out as little as possible; always wear an N95 mask. Children, elders and asthma patients should stay inside.","Stay indoors. Go out only if it is very important, and wear an N95 mask."][b];
+  return "Today the air in "+S.place.name+" is "+catE+". The air number (AQI) is "+fmt(a)+". "+actE;
+}
+function updateVoiceSimple(){
+  if(!S.current) return;
+  $("voiceSimple").textContent = simpleLine(S.lang);
+}
+function buildSpokenReport(lang){
+  if(!S.current) return lang==="hi" ? "Live data abhi load nahi hua hai. Thoda ruk kar dobara koshish karein." : "Live data has not loaded yet. Please wait a moment and try again.";
+  var a=S.cpcb, cig=(S.trail.pm25/22), bw=$("bestWindow").textContent;
+  var riskTxt=""; try{ var r=calcRisk(); riskTxt = lang==="hi" ? " Aapke liye personal risk score 100 me se "+r.score+" hai." : " Your personal risk score is "+r.score+" out of 100."; }catch(e){}
+  if(lang==="hi"){
+    return "सुनिए, आज की हवा की रिपोर्ट। "+simpleLine("hi")+
+      " आज पूरे दिन ऐसी हवा में साँस लेना लगभग "+(cig<0.5?"आधी":String(Math.round(cig)))+" सिगरेट पीने के बराबर माना जाता है।"+
+      " आज सबसे साफ़ हवा का समय "+bw+" है — खिड़कियाँ खोलना या बाहर टहलना हो तो उसी समय करें।"+
+      riskTxt+
+      " याद रखें: मास्क कपड़े वाला नहीं, अच्छी तरह फिट होने वाला N95 होना चाहिए। यह जानकारी लाइव डेटा से बनी है।";
+  }
+  return "Here is today's air report. "+simpleLine("en")+
+    " Breathing today's air all day is roughly equal to smoking "+(cig<0.5?"half a":String(Math.round(cig)))+" cigarette"+(Math.round(cig)===1?"":"s")+"."+
+    " The cleanest time today is "+bw+" — open windows or go for a walk in that time."+
+    riskTxt+
+    " Remember: use a well-fitted N95 mask, not a cloth mask. This report is made from live data.";
+}
+/* Roman-script (Hinglish) twins of the Hindi lines — spoken with the English voice when the phone has no Hindi voice pack, so Hindi listeners still hear the full report instead of silence. */
+function simpleLineRoman(){
+  var a=S.cpcb, b=bandOf(a);
+  var cat=["bahut achchi","achchi","theek-thaak, zyada achchi nahi","kharaab","bahut kharaab","khatarnaak"][b];
+  var act=["Aaj bahar ke saare kaam aaram se kar sakte hain.","Bahar ja sakte hain; naazuk sehat walon ko thoda dhyaan rakhna chaahiye.","Lambi daud ya bhaari kasrat bahar na karein; chhote kaam chalenge.","Bahar kam jaayein; jaana zaroori ho to N95 mask pehnein. Bachche aur buzurg andar rahein.","Bahar bilkul kam jaayein; N95 mask zaroor pehnein. Bachche, buzurg aur dama ke mareez andar hi rahein.","Ghar ke andar hi rahein. Bahar jaana bahut zaroori ho tabhi N95 mask pehenkar jaayein."][b];
+  return "Aaj "+S.place.name+" ki hawa "+cat+" hai. Hawa ka number (AQI) "+fmt(a)+" hai. "+act;
+}
+function buildSpokenReportRoman(){
+  if(!S.current) return "Live data abhi load nahi hua hai. Thoda ruk kar dobara koshish karein.";
+  var cig=(S.trail.pm25/22), bw=$("bestWindow").textContent;
+  var riskTxt=""; try{ var r=calcRisk(); riskTxt=" Aapke liye personal risk score 100 mein se "+r.score+" hai."; }catch(e){}
+  return "Suniye, aaj ki hawa ki report. "+simpleLineRoman()+
+    " Aaj poore din aisi hawa mein saans lena lagbhag "+(cig<0.5?"aadhi":String(Math.round(cig)))+" cigarette peene ke barabar maana jaata hai."+
+    " Aaj sabse saaf hawa ka samay "+bw+" hai. Khidkiyaan kholna ya bahar tahalna ho to usi samay karein."+
+    riskTxt+
+    " Yaad rakhein: mask kapde wala nahi, achchi tarah fit hone wala N95 hona chaahiye. Yeh jaankaari live data se bani hai.";
+}
+function buildSpokenRisk(){
+  var lang=S.lang, r;
+  try{ r=calcRisk(); }catch(e){ return lang==="hi"?"Risk abhi uplabdh nahi hai.":"Risk is not available yet."; }
+  if(lang==="hi") return "Aapka personal risk score 100 me se "+r.score+" hai. Faisla: "+r.verdict+". "+r.why+" Poori report sunne ke liye upar wala bada awaaz button dabayein.";
+  return "Your personal risk score is "+r.score+" out of 100. Verdict: "+r.verdict+". "+r.why;
+}
+function buildSpokenPlan(){
+  if(!S.planText) renderPlan();
+  var lang=$("pLang").value;
+  return (lang==="hi" ? S.place.name+" ke liye aapka ClearAir plan. " : "Your ClearAir plan for "+S.place.name+". ")+S.planText;
+}
+function buildSpokenPlanRoman(){
+  if($("pLang").value!=="hi") return null;
+  if(!S.planText) renderPlan();
+  var b=bestWindow(); var bTxt=b?hourLabel(b.from)+"–"+hourLabel(b.to):"—";
+  var txt=S.planText.split(T.hi.openWin(bTxt)).join(T.hi.openWinR(bTxt)).split(T.hi.mask).join(T.hi.maskR)
+    .split("सुबह").join("Subah").split("आना-जाना").join("Aana-jaana").split("घर के अंदर").join("Ghar ke andar").split("शाम").join("Shaam");
+  return S.place.name+" ke liye aapka ClearAir plan. "+txt;
+}
+if(voiceSupported() && speechSynthesis.onvoiceschanged!==undefined){ speechSynthesis.onvoiceschanged=function(){ refreshVoiceNote(); }; }
+
+/* ========= Ask ========= */
+function answer(q){
+  var s=q.toLowerCase(), hindi=/[\u0900-\u097F]/.test(q)||/mask pehn|bachch|khel|khidki/.test(s);
+  var a=S.cpcb, risk=calcRisk();
+  var en={
+    mask: a>100 ? "Yes — at CPCB AQI "+fmt(a)+", wear a fitted N95/KN95 for outings over ~20 minutes. A cloth or surgical mask helps little against PM2.5." : "At CPCB AQI "+fmt(a)+", a mask is optional for healthy adults; sensitive people may still prefer one.",
+    play: a>200 ? "Better not today — AQI "+fmt(a)+" is poor for children's lungs. Indoor play, or the best window "+$("bestWindow").textContent+" at most." : a>100 ? "Short play is okay, ideally in the best window "+$("bestWindow").textContent+", away from main roads." : "Yes — air is fine for outdoor play today (AQI "+fmt(a)+").",
+    run: "For your selected profile the risk score is "+risk.score+"/100: "+risk.verdict+". "+risk.why,
+    win: $("ventWindow").textContent,
+    def: "Your risk score combines live CPCB AQI, your health profile, activity breathing rate and minutes outside — computed by fixed rules on this page, so the same inputs always give the same verdict."
+  };
+  var hi={
+    mask: a>100 ? "हाँ — CPCB AQI "+fmt(a)+" पर 20 मिनट से लंबी बाहर की यात्रा के लिए फिटेड N95/KN95 पहनें। कपड़े का मास्क PM2.5 से ज़्यादा सुरक्षा नहीं देता।" : "CPCB AQI "+fmt(a)+" पर स्वस्थ वयस्कों के लिए मास्क वैकल्पिक है।",
+    play: a>200 ? "आज बेहतर होगा कि बच्चे बाहर न खेलें — AQI "+fmt(a)+" बच्चों के फेफड़ों के लिए खराब है।" : "थोड़ी देर खेल सकते हैं, सबसे अच्छा समय "+$("bestWindow").textContent+" है।",
+    run: "आपके चुने हुए प्रोफ़ाइल के लिए risk score "+risk.score+"/100 है: "+risk.why,
+    win: $("ventWindow").textContent,
+    def: "Risk score live CPCB AQI, आपकी health profile, activity और बाहर बिताए समय से तय नियमों से बनता है।"
+  };
+  var L=hindi?hi:en;
+  if(/mask|मास्क|n95/.test(s)) return L.mask;
+  if(/kid|child|bachch|बच्च|play|khel|खेल/.test(s)) return L.play;
+  if(/run|exercise|walk|cycle|sport|दौड़|टहल/.test(s)) return L.run;
+  if(/window|ventilat|khidki|खिड़क/.test(s)) return L.win;
+  if(/risk|score|स्कोर/.test(s)) return L.def;
+  return (hindi? "इस समय "+S.place.name+" में CPCB AQI "+fmt(a)+" ("+catIN(a)[0]+") है। सबसे साफ़ समय "+$("bestWindow").textContent+" है। मास्क, बच्चों के खेल या खिड़की के बारे में पूछकर देखें।" : "Right now "+S.place.name+" is at CPCB AQI "+fmt(a)+" ("+catIN(a)[0]+"). Cleanest slot: "+$("bestWindow").textContent+". Ask me about masks, kids playing, exercise or windows.");
+}
+function pushMsg(txt,who){ var d=document.createElement("div"); d.className="msg "+who; d.textContent=txt; $("chatLog").appendChild(d); $("chatLog").scrollTop=1e6; }
+/* ========= Compare & card ========= */
+function fetchAqiFor(lat,lon,cb){ fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lon+"&current=pm2_5,us_aqi&hourly=pm2_5&forecast_days=1&timezone=auto").then(function(r){return r.json();}).then(function(j){ var pm=j.current.pm2_5; var sub=subIndex(pm,BP.pm25); cb({pm:pm,approx:sub,us:j.current.us_aqi}); }).catch(function(){ cb(null); }); }
+function compare(){
+  var qs=[$("cmpA").value.trim(),$("cmpB").value.trim(),$("cmpC").value.trim()].filter(Boolean);
+  if(qs.length<2){ $("cmpOut").innerHTML='<p class="mini">Enter at least two places.</p>'; return; }
+  setBusy($("cmpBtn"),true,"Comparing…");
+  $("cmpOut").innerHTML='<p class="mini">Loading live data…</p>';
+  var out=[], done=0;
+  function step(){ if(++done===qs.length){ drawCmp(out); setBusy($("cmpBtn"),false); } }
+  qs.forEach(function(q,i){ geocodeSilent(q,function(g){ if(!g){ out[i]={name:q,err:1}; step(); } else fetchAqiFor(g.lat,g.lon,function(v){ out[i]={name:g.name,v:v}; step(); }); }); });
+  function drawCmp(o){ $("cmpOut").innerHTML=o.map(function(x){ if(x.err||!x.v) return '<div class="cell"><b>'+x.name+'</b><p class="mini">Not found / unavailable</p></div>'; var c=catIN(x.v.approx); return '<div class="cell"><div class="l mini" style="font-weight:700">'+x.name+'</div><div class="v">'+fmt(x.v.approx)+'</div><div class="mini">CPCB-scale estimate from current PM2.5 · '+c[0]+' · PM2.5 '+fmt(x.v.pm,0)+' µg/m³ · US AQI '+fmt(x.v.us)+'</div></div>'; }).join(""); }
+}
+function geocodeSilent(q,cb){ fetch("https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(q)+"&count=1&language=en&format=json").then(function(r){return r.json();}).then(function(j){ cb(j.results&&j.results.length?{lat:j.results[0].latitude,lon:j.results[0].longitude,name:j.results[0].name}:null); }).catch(function(){cb(null);}); }
+function makeCard(){
+  var cv=document.createElement("canvas"); cv.width=900; cv.height=560; var x=cv.getContext("2d");
+  var dark=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  x.fillStyle=dark?"#1c1c1e":"#ffffff"; x.fillRect(0,0,900,560);
+  x.fillStyle=dark?"#f5f5f7":"#1d1d1f"; x.font="700 44px -apple-system,Helvetica,Arial"; x.fillText("ClearAir — "+S.place.name,48,84);
+  x.font="800 170px -apple-system,Helvetica,Arial"; x.fillText(fmt(S.standard==="IN"?S.cpcb:S.usAqi),44,268);
+  var c=S.standard==="IN"?catIN(S.cpcb):catUS(S.usAqi);
+  x.font="700 40px -apple-system,Helvetica,Arial"; x.fillText(c[0]+" · "+(S.standard==="IN"?"India CPCB":"US EPA"),48,330);
+  x.font="400 30px -apple-system,Helvetica,Arial"; x.fillStyle=dark?"#d1d1d6":"#515154";
+  x.fillText("PM2.5 "+fmt(S.pm25Now,0)+" µg/m³ · Best window "+$("bestWindow").textContent,48,396);
+  x.fillText("My risk today: "+calcRisk().score+"/100 — "+calcRisk().verdict,48,448);
+  x.font="400 22px -apple-system,Helvetica,Arial"; x.fillStyle=dark?"#98989f":"#6e6e73";
+  x.fillText("Live data: Open-Meteo / Copernicus CAMS (modelled) · "+S.updated,48,516);
+  $("cardOut").innerHTML=""; var img=new Image(); img.src=cv.toDataURL("image/png"); img.alt="Shareable air quality card for "+S.place.name; img.className="cardimg";
+  var a=document.createElement("a"); a.href=img.src; a.download="clearair-"+S.place.name.toLowerCase().replace(/\s+/g,"-")+".png"; a.className="btn primary"; a.style.marginTop="10px"; a.textContent="Download card PNG";
+  $("cardOut").appendChild(img); $("cardOut").appendChild(a);
+}
+/* ========= Events ========= */
+$("searchForm").addEventListener("submit",function(e){ e.preventDefault(); var q=$("searchInput").value.trim(); if(q){ setBusy($("searchBtn"),true,"Searching…"); geocode(q,function(lat,lon,n,c){ load(lat,lon,n,c); }); } });
+$("locBtn").addEventListener("click",function(){ if(!navigator.geolocation){ $("loadErr").hidden=false; $("loadErr").textContent="Location is not available in this browser."; return; } setBusy($("locBtn"),true,"Locating…"); navigator.geolocation.getCurrentPosition(function(p){ load(p.coords.latitude,p.coords.longitude,"My location",""); },function(){ setBusy($("locBtn"),false); $("loadErr").hidden=false; $("loadErr").textContent="Location permission was not given — search for your city instead."; }); });
+$("stdIn").addEventListener("click",function(){ S.standard="IN"; $("stdIn").setAttribute("aria-pressed","true"); $("stdUs").setAttribute("aria-pressed","false"); renderAll(); });
+$("stdUs").addEventListener("click",function(){ S.standard="US"; $("stdUs").setAttribute("aria-pressed","true"); $("stdIn").setAttribute("aria-pressed","false"); renderAll(); });
+/* One language everywhere: the EN / हिन्दी toggle drives the voice box too — a single Listen button, a single summary, no duplicated text. */
+var VOICE_T={
+ en:{title:"Listen instead of reading",sub:"No reading needed — tap the button and the app speaks today's air and what to do.",btn:"Listen",stop:"Stop",wait:"As soon as live data loads, today's air in simple words appears here — and the voice reads the same.",risk:"Hear this verdict",plan:"Hear the plan"},
+ hi:{title:"सुनकर समझें",sub:"पढ़ना ज़रूरी नहीं — बटन दबाएँ, ऐप बोलकर बताएगा कि आज हवा कैसी है और क्या करना चाहिए।",btn:"सुनें",stop:"बंद करें",wait:"Live data आते ही यहाँ आसान शब्दों में हालत दिखेगी, और आवाज़ वही बोलेगी।",risk:"यह फैसला सुनें",plan:"Plan सुनिए"}
+};
+function setLang(l){
+  S.lang=l;
+  $("langEn").setAttribute("aria-pressed", l==="en"?"true":"false");
+  $("langHi").setAttribute("aria-pressed", l==="hi"?"true":"false");
+  $("pLang").value=l;
+  var t=VOICE_T[l];
+  $("voiceTitle").textContent=t.title; $("voiceSub").textContent=t.sub;
+  $("voiceBtnLbl").textContent=t.btn; $("voiceStopLbl").textContent=t.stop;
+  $("voiceRiskLbl").textContent=t.risk; $("voicePlanLbl").textContent=t.plan;
+  if(S.current) updateVoiceSimple(); else $("voiceSimple").textContent=t.wait;
+  refreshVoiceNote();
+}
+$("langEn").addEventListener("click",function(){ setLang("en"); });
+$("langHi").addEventListener("click",function(){ setLang("hi"); });
+$("riskAct").addEventListener("change",renderRisk); $("riskDur").addEventListener("input",renderRisk);
+$("maskToggle").addEventListener("click",function(){ var b=$("maskToggle"); b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); renderRisk(); });
+document.querySelectorAll("[data-demo]").forEach(function(b){ b.addEventListener("click",function(){ var d=b.getAttribute("data-demo");
+  if(d==="healthy"){ S.persona="general"; $("riskAct").value="walk"; $("riskDur").value=30; }
+  if(d==="asthma"){ S.persona="asthma"; $("riskAct").value="run"; $("riskDur").value=45; }
+  if(d==="child"){ S.persona="children"; $("riskAct").value="play"; $("riskDur").value=60; }
+  buildPersonas(); renderRisk(); document.getElementById("risk").scrollIntoView({behavior:"smooth"}); }); });
+$("simDur").addEventListener("input",renderSim); $("simInt").addEventListener("change",renderSim);
+$("bestAct").addEventListener("change",function(){ renderBest(); renderVent(); });
+$("alertBtn").addEventListener("click",function(){ var t=$("alertThresh").value; $("alertState").textContent = S.cpcb>+t ? "Heads-up: "+S.place.name+" is already above "+t+" (now "+fmt(S.cpcb)+"). This in-page alert checks the live reading each time you open ClearAir." : "Alert set for CPCB AQI > "+t+" for "+S.place.name+" (now "+fmt(S.cpcb)+"). It is checked against the live reading whenever you open ClearAir."; });
+$("taskForm").addEventListener("submit",function(e){ e.preventDefault(); var name=$("taskName").value.trim(); if(!name) return; var tv=$("taskTime").value; var lbl=taskLabel(tv);
+  S.tasks.push({name:name,timeLabel:lbl,kind:$("taskKind").value}); $("taskName").value=""; renderPlanner(); });
+function taskLabel(tv){ var d=new Date(); d.setHours(+tv.slice(0,2),+tv.slice(3,5),0,0); var h=d.getHours(),ap=h>=12?"PM":"AM"; return (h%12||12)+" "+ap; }
+$("genPlan").addEventListener("click",function(){ renderPlan(); updatePrompt(); });
+$("copyPlan").addEventListener("click",function(){ if(!S.planText) renderPlan(); if(navigator.clipboard) navigator.clipboard.writeText("ClearAir plan — "+S.place.name+" (CPCB AQI "+fmt(S.cpcb)+")\n\n"+S.planText).then(function(){ $("planState").textContent="Plan copied."; }); });
+["pTransport","pCook","pHome","pClean","pFamily","pLang"].forEach(function(id){ $(id).addEventListener("change",updatePrompt); });
+$("voiceBtn").addEventListener("click",function(){ if(voiceOn){ stopSpeaking(); return; } speakText(buildSpokenReport(S.lang),S.lang, S.lang==="hi"?buildSpokenReportRoman():null); });
+$("voiceStop").addEventListener("click",stopSpeaking);
+$("voiceRiskBtn").addEventListener("click",function(){ var t=buildSpokenRisk(); speakText(t,S.lang, S.lang==="hi"?t:null); });
+$("voicePlanBtn").addEventListener("click",function(){ speakText(buildSpokenPlan(),$("pLang").value, buildSpokenPlanRoman()); });
+window.addEventListener("beforeunload",function(){ if(voiceSupported()) speechSynthesis.cancel(); });
+$("cmpBtn").addEventListener("click",compare);
+$("cardBtn").addEventListener("click",makeCard);
+$("chatForm").addEventListener("submit",function(e){ e.preventDefault(); var q=$("chatInput").value.trim(); if(!q) return; pushMsg(q,"u"); $("chatInput").value=""; pushMsg(answer(q),"a"); });
+/* ========= Live freshness — auto-refresh + "updated … ago" ========= */
+function tickLive(){
+  var el=$("liveTxt"); if(!el) return;
+  if(!S.fetchedAt){ el.textContent="LIVE · connecting…"; return; }
+  var m=Math.floor((Date.now()-S.fetchedAt)/60000);
+  el.textContent="LIVE · updated "+(m<1?"just now":m+" min ago")+" · auto-refresh on";
+}
+setInterval(tickLive,30000);
+setInterval(function(){ if(S.place) load(S.place.lat,S.place.lon,S.place.name,S.place.country); },600000);
+document.addEventListener("visibilitychange",function(){ if(!document.hidden && S.fetchedAt && Date.now()-S.fetchedAt>600000) load(S.place.lat,S.place.lon,S.place.name,S.place.country); });
+/* Init */
+$("polGrid").innerHTML=POLS.map(function(p){return '<div class="pol"><div class="name"><span>'+p[1]+'</span></div><div class="val">– <span class="unit">'+p[2]+'</span></div><div class="mini" style="margin-top:4px">Waiting for live data…</div></div>';}).join("");
+buildPersonas(); buildHabits(); buildAudit(); renderAudit();
+pushMsg("Namaste — ask me about masks, kids playing outside, exercise, or when to open windows. I answer from the live data above.","a");
+load(S.place.lat,S.place.lon,S.place.name,S.place.country);
+if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
