@@ -194,6 +194,7 @@ a{color:var(--accent-ink)}
 
 <div class="wrap">
   <p class="err" id="loadErr" role="alert" hidden></p>
+  <p id="retryRow" hidden style="margin:0 0 4px"><button class="btn primary" type="button" id="retryBtn"><i data-lucide="refresh-cw"></i>Retry live data</button></p>
 
   <!-- NOW -->
   <div class="grid hero" id="now">
@@ -504,15 +505,23 @@ function dayLabel(iso){ return new Date(iso).toLocaleDateString("en-IN",{weekday
 
 /* ========= Data loading ========= */
 function mean(a){ a=a.filter(function(x){return x!=null&&!isNaN(x);}); return a.length?a.reduce(function(s,x){return s+x;},0)/a.length:0; }
+function fetchJson(url){
+  return fetch(url).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); });
+}
 function load(lat,lon,name,country){
   S.place={name:name,country:country||"",lat:lat,lon:lon};
-  $("loadErr").hidden=true;
+  $("loadErr").hidden=true; $("retryRow").hidden=true;
   var aq="https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lon+
     "&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi,european_aqi&forecast_days=7&past_days=7&timezone=auto";
   var wx="https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,uv_index&timezone=auto";
-  Promise.all([fetch(aq).then(function(r){return r.json();}), fetch(wx).then(function(r){return r.json();})])
+  /* Weather is context only — its failure must never kill the AQI reading.
+     Air quality is retried once before any error is shown. */
+  var aqOnce=function(){ return fetchJson(aq).then(function(a){ if(!a||!a.hourly||!a.current||a.error) throw new Error("Bad AQ payload"); return a; }); };
+  var aqFetch=aqOnce().catch(function(){ return new Promise(function(res){ setTimeout(res,1200); }).then(aqOnce); });
+  var wxFetch=fetchJson(wx).catch(function(){ return {current:null}; });
+  Promise.all([aqFetch, wxFetch])
   .then(function(res){
-    var a=res[0]; S.hourly=a.hourly; S.current=a.current; S.wx=res[1].current;
+    var a=res[0]; S.hourly=a.hourly; S.current=a.current; S.wx=res[1]&&res[1].current?res[1].current:null;
     // CPCB from trailing 24h means
     var times=a.hourly.time, nowIdx=times.length-1;
     var cur=new Date(a.current.time).getTime();
@@ -526,8 +535,26 @@ function load(lat,lon,name,country){
     S.usAqi=a.current.us_aqi||0; S.pm25Now=a.current.pm2_5||S.trail.pm25;
     S.fetchedAt=Date.now();
     S.updated=new Date(a.current.time).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
-    renderAll(); loadCleanerDirs(); updatePrompt(); tickLive(); setBusy($("searchBtn"),false); setBusy($("locBtn"),false);
-  }).catch(function(){ setBusy($("searchBtn"),false); setBusy($("locBtn"),false); var e=$("loadErr"); e.hidden=false; e.textContent="Live data could not load. Check the internet connection and search again — no sample numbers are shown in place of real data."; $("placeLine").textContent="Live data unavailable — check connection and retry"; $("liveTxt").textContent="LIVE · unavailable — check connection"; $("cleanerDir").textContent="Nearby comparison unavailable while live data is down."; $("ventWindow").textContent="Ventilation guidance appears once live data loads."; });
+    /* Data HAS loaded at this point — a rendering hiccup must never be
+       reported as a connection failure (that was the screenshot bug:
+       a real AQI on screen under a "could not load" banner). */
+    $("loadErr").hidden=true; $("retryRow").hidden=true;
+    try{ renderAll(); }catch(err){ if(window.console) console.warn("Render issue",err); }
+    try{ loadCleanerDirs(); updatePrompt(); }catch(err2){ if(window.console) console.warn("Secondary render issue",err2); }
+    tickLive(); setBusy($("searchBtn"),false); setBusy($("locBtn"),false); setBusy($("retryBtn"),false);
+  }).catch(function(){
+    setBusy($("searchBtn"),false); setBusy($("locBtn"),false); setBusy($("retryBtn"),false);
+    var e=$("loadErr"); e.hidden=false; $("retryRow").hidden=false;
+    if(S.current && S.fetchedAt){
+      /* A refresh failed but a real earlier reading is on screen — say so,
+         and leave the reading, place line and timestamp untouched. */
+      e.textContent="Refresh failed — showing the last live reading ("+S.updated+"). Check the connection and search again to update.";
+      $("liveTxt").textContent="LIVE · refresh failed — showing last reading";
+    } else {
+      e.textContent="Live data could not load. Check the internet connection and search again — no sample numbers are shown in place of real data.";
+      $("placeLine").textContent="Live data unavailable — check connection and retry"; $("liveTxt").textContent="LIVE · unavailable — check connection"; $("cleanerDir").textContent="Nearby comparison unavailable while live data is down."; $("ventWindow").textContent="Ventilation guidance appears once live data loads.";
+    }
+  });
 }
 function geocode(q,cb){
   fetch("https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(q)+"&count=1&language=en&format=json")
@@ -551,7 +578,7 @@ function renderAll(){
   updateVoiceSimple();
   $("severeBox").hidden = S.cpcb<=300;
   $("severeChecklist").hidden = S.cpcb<=300;
-  renderPollutants(); renderWx(); renderRisk(); renderForecast(); renderSim(); renderBest(); renderVent(); renderPlanner();
+  renderPollutants(); renderWx(); renderBest(); renderRisk(); renderForecast(); renderSim(); renderVent(); renderPlanner();
   $("mapFrame").src="https://www.openstreetmap.org/export/embed.html?bbox="+(S.place.lon-0.09)+"%2C"+(S.place.lat-0.05)+"%2C"+(S.place.lon+0.09)+"%2C"+(S.place.lat+0.05)+"&layer=mapnik&marker="+S.place.lat+"%2C"+S.place.lon;
 }
 function headline(a){
@@ -627,11 +654,12 @@ function renderRisk(){
 /* Forecast chart + history */
 function renderForecast(){
   var h=next24(); if(!h.length) return;
+  if(!S.worst||!S.worst.t){ S.worst=h.reduce(function(m,x){return x.pm>m.pm?x:m;},{pm:-1,t:h[0].t}); }
   var max=Math.max.apply(null,h.map(function(x){return x.pm;}))*1.15, W=720,H=170,pad=26,bw=(W-pad*2)/h.length;
   var bars=h.map(function(x,i){ var bh=(x.pm/max)*(H-50); var isWorst=S.worst&&x.t===S.worst.t;
     return '<rect x="'+(pad+i*bw+1).toFixed(1)+'" y="'+(H-24-bh).toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="3" fill="'+(isWorst?"var(--poor)":"var(--ink3)")+'" opacity="'+(isWorst?1:0.55)+'"><title>'+hourLabel(x.t)+": PM2.5 "+fmt(x.pm,0)+' µg/m³</title></rect>'+(i%3===0?'<text x="'+(pad+i*bw+bw/2).toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--ink3)" text-anchor="middle">'+hourLabel(x.t)+'</text>':""); }).join("");
   $("fcChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="presentation">'+bars+'</svg><p class="mini">Bars: hourly PM2.5 (µg/m³), next 24 hours. Dark red = worst hour.</p>';
-  $("worstHour").textContent=hourLabel(S.worst.t); $("worstHourV").textContent="PM2.5 "+fmt(S.worst.pm,0)+" µg/m³ — keep windows shut and exercise indoors around then.";
+  if(S.worst&&S.worst.t){ $("worstHour").textContent=hourLabel(S.worst.t); $("worstHourV").textContent="PM2.5 "+fmt(S.worst.pm,0)+" µg/m³ — keep windows shut and exercise indoors around then."; }
   // daily means from hourly
   var byDay={}; S.hourly.time.forEach(function(t,i){ var d=t.slice(0,10); (byDay[d]=byDay[d]||[]).push(S.hourly.pm2_5[i]); });
   var days=Object.keys(byDay).sort().map(function(d){return {d:d,v:mean(byDay[d])};});
@@ -678,7 +706,7 @@ function renderPlanner(){
 /* Ventilation */
 function renderVent(){
   var b=bestWindow(); if(!b) return;
-  $("ventWindow").innerHTML = S.cpcb>200 ? "Outdoor air is poor today. Ventilate briefly in the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — then close windows and run the purifier. Skip the usual early-morning full-house airing on days like this." : "Open windows during the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — and close them before the worst hour, "+hourLabel(S.worst.t)+".";
+  $("ventWindow").innerHTML = S.cpcb>200 ? "Outdoor air is poor today. Ventilate briefly in the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — then close windows and run the purifier. Skip the usual early-morning full-house airing on days like this." : "Open windows during the cleanest slot — <b>"+hourLabel(b.from)+" – "+hourLabel(b.to)+"</b> (PM2.5 ≈ "+fmt(b.avg,0)+" µg/m³) — and close them before the worst hour"+(S.worst&&S.worst.t?", "+hourLabel(S.worst.t):"")+".";
 }
 /* Severe checklist */
 var SEVERE=["Seal the bedroom door gap and run the purifier on high for 30 minutes","Wet-mop floors instead of dry sweeping (dry sweeping re-suspends dust)","Cook with the lid on and exhaust on; avoid frying-heavy meals today","Keep fitted N95s by the door for anyone who must step out","Postpone outdoor exercise and children’s outdoor play","Check on elders and anyone with asthma — reliever inhaler within reach"];
@@ -1022,6 +1050,7 @@ $("voiceStop").addEventListener("click",stopSpeaking);
 $("voiceRiskBtn").addEventListener("click",function(){ var t=buildSpokenRisk(); speakText(t,S.lang, S.lang==="hi"?t:null); });
 $("voicePlanBtn").addEventListener("click",function(){ speakText(buildSpokenPlan(),$("pLang").value, buildSpokenPlanRoman()); });
 window.addEventListener("beforeunload",function(){ if(voiceSupported()) speechSynthesis.cancel(); });
+$("retryBtn").addEventListener("click",function(){ setBusy($("retryBtn"),true,"Retrying…"); load(S.place.lat,S.place.lon,S.place.name,S.place.country); setTimeout(function(){ setBusy($("retryBtn"),false); },400); });
 $("cmpBtn").addEventListener("click",compare);
 $("cardBtn").addEventListener("click",makeCard);
 $("chatForm").addEventListener("submit",function(e){ e.preventDefault(); var q=$("chatInput").value.trim(); if(!q) return; pushMsg(q,"u"); $("chatInput").value=""; pushMsg(answer(q),"a"); });
