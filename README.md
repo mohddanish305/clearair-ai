@@ -45,13 +45,29 @@ of each choice.
 - **Method & Sources** — the app states plainly that its data is a Copernicus
   CAMS model estimate via Open-Meteo, not a CPCB ground-station reading.
 
+## How the features map to the problem statement
+
+The problem statement asks for a GenAI assistant that helps people navigate
+urban air pollution with (a) low-emission daily routines, (b) indoor
+air-quality hacks and (c) sustainable alternatives tailored to location and
+lifestyle, with the direct impact of each choice explained:
+
+| Problem-statement ask | ClearAir feature |
+| --- | --- |
+| Low-emission daily routines | Day Planner (flexible outdoor tasks shifted to the cleanest hours) and the AI daily plan (Morning / Commute / Indoor / Evening) |
+| Indoor air-quality hacks | Indoor audit — household sources ranked with ₹ fix costs; ventilation window guidance |
+| Sustainable alternatives by location & lifestyle | Commute/transport advice in the plan, driven by the user's own answers and live local data for any searched place |
+| Direct impact of each choice, explained | Every plan action carries a quantified impact line (CO₂ saved, exposure avoided); Exposure Simulator shows the PM2.5 dose of an activity and the N95 saving |
+| Tailored to the person, not just the city | Personal Risk Score — 7 health personas × activity × duration; same air, different verdict |
+| Usable by people who cannot read | "Listen" voice reports in Hindi or English |
+
 ## How it works
 
 1. The browser fetches live pollutant levels and a 5-day hourly forecast from
    the Open-Meteo Air Quality API (Copernicus CAMS) — no API key needed.
-2. A deterministic logic layer computes the CPCB NAQI, the US EPA category,
-   the risk score, exposure dose, best window and all impact figures.
-   **AI never calculates numbers.**
+2. A deterministic logic layer (`logic.js`) computes the CPCB NAQI, the US
+   EPA category, the risk score, exposure dose, best window and all impact
+   figures. **AI never calculates numbers.**
 3. GenAI (Pollinations text API, keyless) receives only those computed facts
    in a structured prompt and writes the plan in plain language. The prompt
    is viewable in the app ("See the exact prompt").
@@ -88,10 +104,35 @@ of each choice.
 
 ## Tech
 
-Single-file HTML/CSS/JavaScript (no build step), Open-Meteo Geocoding +
-Air Quality APIs, Leaflet map with CARTO light tiles, Lucide icons,
-Web Speech API. Deployable as-is on GitHub Pages.
+Plain HTML/CSS/JavaScript split into small static files — no build step,
+no framework, no npm dependencies for the app itself:
+
+- `index.html` — markup only
+- `styles.css` — all styling
+- `logic.js` — the pure deterministic logic (NAQI, risk score, exposure
+  dose, best window); loads as a browser global (`window.ClearAirLogic`)
+  and as a Node module, so the tests exercise the exact code the page runs
+- `app.js` — state, data loading, rendering and events; loaded after
+  `logic.js`
+- `tests/` — the unit-test suite (below)
+
+Plus: Open-Meteo Geocoding + Air Quality APIs, an OpenStreetMap embed,
+Lucide icons, Web Speech API. Deployable as-is on GitHub Pages.
+
+## Testing
+
+The deterministic logic is unit-tested with Node's built-in test runner
+(zero dependencies). The suite covers CPCB NAQI at breakpoint boundaries
+and inside bands (PM2.5, PM10), category thresholds on both scales, US
+EPA AQI for known PM2.5 inputs, risk-score bounds and persona ordering,
+exposure-dose monotonicity and the N95 reduction, and best-window
+selection over hourly values:
+
+```sh
+node --test tests/logic.test.js   # 19 tests, all passing
+```
 
 ## Run locally
 
-Open `index.html` in any modern browser — no server, keys or build needed.
+Open `index.html` in any modern browser — no server, keys or build needed
+(or serve the folder with any static file server).
