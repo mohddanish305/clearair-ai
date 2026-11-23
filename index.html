@@ -464,19 +464,19 @@
 
     <script>
   /* =======================================================================
-     ★★★  GEMINI VOICE KEY — Mohd, READ THIS  ★★★
-     The natural, human-sounding Gemini voice needs a Google AI Studio
-     API key. Paste the key between the quotes below. The key MUST be
-     restricted in Google Cloud Console to (a) the Generative Language
-     API only and (b) this website's domain (mohddanish305.github.io),
-     so the key is useless anywhere else.
-     Gemini TTS is the app's ONLY voice (the browser / phone voice was
-     removed on Mohd's order): if this key is empty or a call fails, a
-     Listen tap ends with an honest toast instead of any other voice.
+     VOICE PROXY — there is NO API key in this file, on purpose.
+     The natural, human-sounding Gemini voice (Sulafat) is served by
+     Mohd's private Apps Script proxy ("ClearAir Voice Proxy"), which
+     holds the Gemini key server-side. This page only sends text to
+     the proxy and plays the audio it returns. Never paste a key into
+     this public file again: the previous key was reported as leaked
+     and disabled by Google within the hour.
+     The proxy voice is the app's ONLY voice (the browser / phone
+     voice was removed on Mohd's order): if a call fails, a Listen
+     tap ends with an honest toast instead of any other voice.
      ======================================================================= */
-  const GEMINI_TTS_KEY = "AIzaSyB8sfBuPiPPjPU31yYPilKdHJhToHPFEDg"; // <-- paste Mohd's referrer-restricted AI Studio key here
-  const GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts";
-  const GEMINI_TTS_VOICE = "Sulafat";
+  const VOICE_PROXY_URL = "https://script.google.com/macros/s/AKfycbwWvJCcHoAF5334X3ZeBXtW6ueHX1Rn2d7Ue32VrcMfZJ0CanfaiHzSp7X4dN-IfwF45w/exec";
+  const VOICE_PROXY_TOKEN = "clearair-voice-v1";
 
   /* =======================================================================
      DETERMINISTIC LOGIC — ported verbatim from attempt3/logic.js
@@ -1796,8 +1796,10 @@
     // 9. SENIOR "TAP & LISTEN" + THE VOICE ENGINE (FIX 3)
     //    Gemini TTS only (voice "Sulafat") — the browser / phone voice
     //    was removed on Mohd's order. Text is fetched and played in
-    //    sentence chunks, in order; Stop ends playback immediately and
-    //    clears the speaking UI; a failed call shows an honest toast.
+    //    order, in requests that merge consecutive sentences up to
+    //    ~500 characters (the free TTS tier allows only ~10 requests a
+    //    day); Stop ends playback immediately and clears the speaking
+    //    UI; a failed call shows an honest toast.
     // =========================================================================
     function renderSeniorCards() {
       const grid = document.getElementById("senior-cards-grid");
@@ -1903,6 +1905,26 @@
       return parts.filter(p => p.trim().length > 0);
     }
 
+    /* Merge consecutive sentence chunks into combined requests of up
+       to ~500 characters each (the proxy accepts up to 600, so 500 is
+       a safe target): the Gemini TTS free tier allows only ~10
+       requests a day, and one request per sentence would burn 4–5 of
+       them on a single Listen tap. Sentences are never split — order
+       and sentence boundaries are kept, joined with a single space —
+       and each combined request still returns one audio that plays
+       as one unit. A single chunk longer than the limit stays alone. */
+    function mergeChunks(chunks, limit) {
+      const merged = [];
+      let cur = "";
+      chunks.forEach(c => {
+        if (!cur) { cur = c; return; }
+        if (cur.length + 1 + c.length <= limit) { cur = cur + " " + c; }
+        else { merged.push(cur); cur = c; }
+      });
+      if (cur) merged.push(cur);
+      return merged;
+    }
+
     function setVoiceUI(on) {
       appState.isSpeaking = on;
       const banner = document.getElementById("audio-banner");
@@ -1974,47 +1996,44 @@
       return new Blob([buffer], { type: "audio/wav" });
     }
 
-    /* One Gemini TTS request for one chunk of text. Request shape as in
-       Mohd's Gemini Canvas original: POST
-       v1beta/models/gemini-2.5-flash-preview-tts:generateContent,
-       responseModalities ["AUDIO"], prebuilt voice "Sulafat"; the
-       reply's inlineData is raw 16-bit PCM (sample rate inside the
-       mimeType). Resolves { audioData, mimeType }; throws on ANY
-       failure — HTTP error, 10 s timeout, malformed reply. */
-    async function fetchGeminiChunk(text, lang) {
-      const isHindi = lang === "hi";
-      const promptPrefix = isHindi
-        ? "Speak clearly and naturally in Hindi (हिन्दी): "
-        : "Speak clearly and helpfully: ";
-      const payload = {
-        contents: [{ parts: [{ text: promptPrefix + text }] }],
-        generationConfig: {
-          responseModalities: ["AUDIO"],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: GEMINI_TTS_VOICE }
-            }
-          }
-        },
-        model: GEMINI_TTS_MODEL
-      };
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_TTS_KEY}`;
+    /* One voice-proxy request for one chunk of text. POSTs the chunk
+       to Mohd's Apps Script proxy as a simple request (Content-Type
+       text/plain, JSON string body); the proxy answers JSON. The
+       proxy calls Gemini TTS (prebuilt voice "Sulafat") with the key
+       it holds server-side and returns { audio: <base64 PCM>, mime }
+       — the mime carries the sample rate. Resolves { audioData,
+       mimeType }; throws on ANY failure — HTTP error, 30 s timeout
+       (Apps Script cold starts are slow), an { error } reply, or a
+       malformed reply — carrying the REAL error message so failures
+       stay diagnosable. */
+    async function fetchProxyChunk(text) {
       const ctl = ("AbortController" in window) ? new AbortController() : null;
-      const timer = ctl ? setTimeout(() => { ctl.abort(); }, 10000) : null;
+      const timer = ctl ? setTimeout(() => { ctl.abort(); }, 30000) : null;
       try {
-        const response = await fetch(url, {
+        const response = await fetch(VOICE_PROXY_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ token: VOICE_PROXY_TOKEN, text: text }),
           signal: ctl ? ctl.signal : undefined
         });
         if (timer) clearTimeout(timer);
-        if (!response.ok) throw new Error("Gemini TTS HTTP " + response.status);
-        const result = await response.json();
-        const part = result && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0];
-        const audioData = part && part.inlineData && part.inlineData.data;
-        const mimeType = part && part.inlineData && part.inlineData.mimeType;
-        if (!audioData || !mimeType || !mimeType.startsWith("audio/")) throw new Error("No audio in Gemini reply");
+        let result = null;
+        try { result = await response.json(); } catch (e) { /* non-JSON reply: handled below */ }
+        if (!response.ok) {
+          throw new Error("Voice proxy HTTP " + response.status +
+            (result && result.error ? ": " + result.error : ""));
+        }
+        if (!result) throw new Error("Voice proxy reply was not JSON");
+        if (result.error) {
+          throw new Error("Voice proxy error" +
+            (result.status ? " (status " + result.status + ")" : "") +
+            ": " + result.error);
+        }
+        const audioData = result.audio;
+        const mimeType = result.mime || "audio/L16;rate=24000";
+        if (!audioData || typeof mimeType !== "string" || !mimeType.startsWith("audio/")) {
+          throw new Error("No audio in voice proxy reply");
+        }
         return { audioData, mimeType };
       } catch (err) {
         if (timer) clearTimeout(timer);
@@ -2028,7 +2047,7 @@
        (Stop button, a newer Listen tap, a language switch); throws when
        the fetch or the playback itself fails. */
     async function playGeminiChunk(text, lang, myReq, displayText) {
-      const got = await fetchGeminiChunk(text, lang);
+      const got = await fetchProxyChunk(text);
       if (myReq !== speakSession) return false;
       const rateMatch = got.mimeType.match(/rate=(\d+)/);
       const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
@@ -2077,7 +2096,7 @@
       setVoiceUI(true);
       const captionEl = document.getElementById("audio-caption-text");
       captionEl.textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
-      const chunks = splitChunks(text);
+      const chunks = mergeChunks(splitChunks(text), 500);
       (async () => {
         try {
           for (let i = 0; i < chunks.length; i++) {
@@ -2088,6 +2107,7 @@
           if (myReq === speakSession) setVoiceUI(false);
         } catch (err) {
           if (myReq !== speakSession) return;
+          console.warn("ClearAir voice failed:", err && err.message ? err.message : err);
           stopGeminiAudio();
           setVoiceUI(false);
           showToast(appState.lang === "hi"
