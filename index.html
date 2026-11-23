@@ -470,8 +470,9 @@
      restricted in Google Cloud Console to (a) the Generative Language
      API only and (b) this website's domain (mohddanish305.github.io),
      so the key is useless anywhere else.
-     Leave it EMPTY ("") and NO Gemini call is ever made — the app
-     speaks with the built-in browser voice, exactly as it does today.
+     Gemini TTS is the app's ONLY voice (the browser / phone voice was
+     removed on Mohd's order): if this key is empty or a call fails, a
+     Listen tap ends with an honest toast instead of any other voice.
      ======================================================================= */
   const GEMINI_TTS_KEY = "AIzaSyB8sfBuPiPPjPU31yYPilKdHJhToHPFEDg"; // <-- paste Mohd's referrer-restricted AI Studio key here
   const GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts";
@@ -684,10 +685,9 @@
     //  • FIX 3 (real AI + working voice): Ask AI calls the Pollinations
     //    text API grounded ONLY in the computed live facts, with an honest
     //    source label and a labelled built-in fallback. All speech uses
-    //    the Web Speech engine (the Gemini TTS endpoint needed a key):
-    //    voices are awaited (~3 s), Hindi picks hi-IN → any Hindi →
-    //    Google Hindi by name, and if a Hindi voice errors mid-tap the
-    //    same tap retries in Roman Hinglish instead of going silent.
+    //    Gemini TTS (voice "Sulafat") — the only voice; the browser /
+    //    phone voice was removed on Mohd's order. A failed Gemini call
+    //    stops playback, resets the speaking UI, and shows a toast.
     // =========================================================================
 
     const UI_STRINGS = {
@@ -831,8 +831,8 @@
 
     /* Default steps. `mechanism` drives the Today's Impact dose maths in
        computeImpact(); `co2Saved` is a per-step planning estimate (kg),
-       labelled "(est.)" in the UI. hiRoman is the spoken fallback used
-       when the phone has no Hindi voice (see the voice engine below). */
+       labelled "(est.)" in the UI. (hiRoman fields are legacy data,
+       no longer read — the only voice is Gemini TTS.) */
     const DEFAULT_ACTIONS = [
       {
         id: "act-1",
@@ -995,8 +995,8 @@
     /* Senior Tap & Listen cards. Every answer is a function of ONE view
        model (seniorVM()) built from appState.air — the same computed
        state the hero shows — so a card can never quote a different AQI
-       than the Daily Plan tab. hiRoman mirrors hi for phones without a
-       Hindi voice. */
+       than the Daily Plan tab. (hiRoman fields are legacy data, no
+       longer read — the only voice is Gemini TTS.) */
     const SENIOR_VOICE_CARDS = [
       {
         en: {
@@ -1117,9 +1117,6 @@
     // =========================================================================
     window.addEventListener("DOMContentLoaded", () => {
       applyLanguageUI();
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.getVoices();
-      }
       // FIX 1: the first paint is placeholders only — real numbers arrive
       // from the live feed for the default city.
       loadCity("Hyderabad", "Hyderabad, India", "Hyderabad");
@@ -1346,8 +1343,8 @@
 
     // =========================================================================
     // 5. DERIVED TEXT — every sentence is built from appState.air by fixed
-    //    templates (never by an AI, never stored per city), in English,
-    //    Hindi, and Roman Hinglish (the spoken fallback).
+    //    templates (never by an AI, never stored per city), in English
+    //    and Hindi (the Roman Hinglish builder remains but is unused).
     // =========================================================================
     function bandOf(a) { return a <= 50 ? 0 : a <= 100 ? 1 : a <= 200 ? 2 : a <= 300 ? 3 : a <= 400 ? 4 : 5; }
 
@@ -1797,13 +1794,10 @@
 
     // =========================================================================
     // 9. SENIOR "TAP & LISTEN" + THE VOICE ENGINE (FIX 3)
-    //    Web Speech only — the Gemini TTS endpoint is gone (it needed a
-    //    key). The engine below follows the tested ClearAir build:
-    //    voices are awaited up to ~3 s (they load late on real phones),
-    //    Hindi voice priority is hi-IN → any hi-* → Google Hindi by name,
-    //    speech is queued in sentence chunks with a resume watchdog, and
-    //    a failed Hindi attempt retries INSIDE the same tap in Roman
-    //    Hinglish instead of flipping the button off in silence.
+    //    Gemini TTS only (voice "Sulafat") — the browser / phone voice
+    //    was removed on Mohd's order. Text is fetched and played in
+    //    sentence chunks, in order; Stop ends playback immediately and
+    //    clears the speaking UI; a failed call shows an honest toast.
     // =========================================================================
     function renderSeniorCards() {
       const grid = document.getElementById("senior-cards-grid");
@@ -1833,7 +1827,7 @@
       const textEl = document.getElementById("senior-spoken-text");
       box.classList.remove("hidden");
       textEl.textContent = answer;
-      speakText(answer, appState.lang, appState.lang === "hi" ? card.hiRoman.getAnswer(vm) : null);
+      speakText(answer, appState.lang);
     }
 
     function activateQuickSeniorBriefing() {
@@ -1846,13 +1840,12 @@
       const air = appState.air;
       const en = `Hello. In ${air.place.name}, today's air quality index is ${air.naqi}. ${buildSummary("en")}`;
       const hi = `नमस्ते। ${air.place.name} में आज हवा का स्तर ${air.naqi} है। ${buildSummary("hi")}`;
-      const roman = `Namaste. ${air.place.name} mein aaj hawa ka star ${air.naqi} hai. ${buildSummaryRoman()}`;
       const text = appState.lang === "hi" ? hi : en;
       const box = document.getElementById("senior-spoken-box");
       const textEl = document.getElementById("senior-spoken-text");
       box.classList.remove("hidden");
       textEl.textContent = text;
-      speakText(text, appState.lang, appState.lang === "hi" ? roman : null);
+      speakText(text, appState.lang);
     }
 
     function speakHeroBriefing() {
@@ -1860,8 +1853,7 @@
       const air = appState.air;
       const en = `${air.place.name} AQI is ${air.naqi}. ${buildSummary("en")}`;
       const hi = `${air.place.name} में AQI ${air.naqi} है। ${buildSummary("hi")}`;
-      const roman = `${air.place.name} mein AQI ${air.naqi} hai. ${buildSummaryRoman()}`;
-      speakText(appState.lang === "hi" ? hi : en, appState.lang, appState.lang === "hi" ? roman : null);
+      speakText(appState.lang === "hi" ? hi : en, appState.lang);
     }
 
     function speakActionCard(id) {
@@ -1871,13 +1863,7 @@
       const text = appState.lang === "hi"
         ? `${c.title}। ${c.description} सेहत पर असर: ${c.healthImpact}`
         : `${c.title}. ${c.description} Health impact: ${c.healthImpact}`;
-      let roman = null;
-      if (appState.lang === "hi") {
-        roman = action.hiRoman
-          ? `${action.hiRoman.title}. ${action.hiRoman.description} Sehat par asar: ${action.hiRoman.healthImpact}`
-          : `${action.en.title}. ${action.en.description} Health impact: ${action.en.healthImpact}`;
-      }
-      speakText(text, appState.lang, roman);
+      speakText(text, appState.lang);
     }
 
     function setSeniorSpeed(rate) {
@@ -1896,65 +1882,16 @@
       setSeniorSpeed(appState.speechRate === 1.0 ? 0.85 : 1.0);
     }
 
-    // ---- voice engine ----
-    let speakSession = 0, resumeTimer = null;
+    // ---- voice engine (Gemini TTS only) ----
+    /* The ONLY voice is Gemini TTS (prebuilt voice "Sulafat"). There is
+       deliberately no browser / phone voice path: if a Gemini call
+       fails, playback stops cleanly, the speaking UI resets, and an
+       honest toast explains — a tap is never silent and never stuck. */
+    let speakSession = 0;
 
-    function voiceSupported() { return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window; }
-
-    function pickVoice(lang) {
-      if (!voiceSupported()) return null;
-      const vs = speechSynthesis.getVoices() || [];
-      const norm = (x) => (x || "").replace("_", "-").toLowerCase();
-      let i, v;
-      if (lang === "hi") {
-        /* Hindi, in order: exact hi-IN → any Hindi (hi / hi-*) → a Google
-           Hindi voice matched by name (its lang tag is not always
-           standard) → none (caller falls back to Roman Hinglish). */
-        for (i = 0; i < vs.length; i++) { if (norm(vs[i].lang) === "hi-in") return vs[i]; }
-        for (i = 0; i < vs.length; i++) { const l = norm(vs[i].lang); if (l === "hi" || l.indexOf("hi-") === 0) return vs[i]; }
-        for (i = 0; i < vs.length; i++) { v = vs[i]; if (/google/i.test(v.name || "") && /hindi|हिन्दी/i.test(v.name || "")) return v; }
-        return null;
-      }
-      const want = ["en-IN", "en-GB", "en-US", "en"];
-      for (let w = 0; w < want.length; w++) {
-        for (i = 0; i < vs.length; i++) { v = vs[i]; if (v.lang && norm(v.lang) === want[w].toLowerCase()) return v; }
-      }
-      for (i = 0; i < vs.length; i++) { v = vs[i]; if (v.lang && v.lang.toLowerCase().indexOf("en") === 0) return v; }
-      return null;
-    }
-
-    function hindiVoiceReady() {
-      if (!voiceSupported()) return false;
-      const vs = speechSynthesis.getVoices() || [];
-      for (let i = 0; i < vs.length; i++) {
-        const l = (vs[i].lang || "").replace("_", "-").toLowerCase();
-        if (l === "hi" || l.indexOf("hi-") === 0) return true;
-      }
-      return false;
-    }
-
-    function ensureVoices(cb) {
-      if (!voiceSupported()) { cb(); return; }
-      if ((speechSynthesis.getVoices() || []).length) { cb(); return; }
-      /* Voices load asynchronously and can take well over half a second
-         on real phones — speaking before the list is ready is how the
-         Hindi voice used to be missed. Wait for the first non-empty list
-         (event or poll — some engines never fire the event), up to ~3 s. */
-      let done = false, poll = null;
-      function fin() {
-        if (done) return; done = true;
-        if (poll) { clearInterval(poll); poll = null; }
-        try { speechSynthesis.removeEventListener("voiceschanged", h); } catch (e) {}
-        cb();
-      }
-      function h() { if ((speechSynthesis.getVoices() || []).length) fin(); }
-      try { speechSynthesis.addEventListener("voiceschanged", h); } catch (e) {}
-      poll = setInterval(h, 200);
-      setTimeout(fin, 3000);
-    }
-
-    /* Split into sentence-sized chunks: one long utterance is silently
-       cut off by Chrome/Android TTS; a queue of short ones plays through. */
+    /* Split into sentence-sized chunks: one very long TTS request can
+       be truncated, so the text is fetched and played chunk by chunk,
+       in order. */
     function splitChunks(text) {
       const parts = [];
       let cur = "";
@@ -1973,109 +1910,21 @@
       else banner.classList.add("hidden");
     }
 
-    function stopAudio() {
-      speakSession++;
-      if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
-      stopGeminiAudio();
-      if (voiceSupported()) speechSynthesis.cancel();
-      setVoiceUI(false);
-    }
-
-    function startSpeaking(text, lang, fellBack, fallback) {
-      const mySession = ++speakSession;
-      if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
-      speechSynthesis.cancel();
-      setVoiceUI(true);
-      const captionEl = document.getElementById("audio-caption-text");
-      const failNote = appState.lang === "hi"
-        ? "आवाज़ शुरू नहीं हो पाई — वही बात इस पेज पर लिखी है।"
-        : "Voice couldn't start — the same message is written on this page.";
-      let attemptNo = 0;
-      /* One attempt = one (text, language) pair queued as chunks. An
-         attempt FAILS when every chunk ends/errors without a single
-         onstart, or when the engine never reports speaking/pending. A
-         failed first attempt must NOT end the tap: on Android a listed
-         Hindi voice can still error on Devanagari utterances, and the
-         old behaviour treated that as the end — the button flipped back
-         off with nothing heard. Now the session retries inside the SAME
-         tap with the Roman-Hinglish fallback; only when no attempt is
-         left does it stop and show the fail note (never silent). Stop
-         still works instantly: stopAudio() bumps speakSession and every
-         callback below checks it. */
-      function runAttempt(txt, lng) {
-        if (mySession !== speakSession) return;
-        const myAttempt = ++attemptNo;
-        const chunks = splitChunks(txt);
-        if (!chunks.length) { finishAttempt(false); return; }
-        captionEl.textContent = txt;
-        let left = chunks.length, anyStart = false, settled = false;
-        function done() {
-          if (mySession !== speakSession || myAttempt !== attemptNo || settled) return;
-          left--;
-          if (left <= 0) { settled = true; finishAttempt(anyStart); }
-        }
-        /* Speak only after a short delay: speak() in the same tick as
-           cancel() is dropped by Android TTS. */
-        setTimeout(() => {
-          if (mySession !== speakSession || myAttempt !== attemptNo || settled) return;
-          const v = pickVoice(lng);
-          chunks.forEach(c => {
-            const u = new SpeechSynthesisUtterance(c);
-            u.lang = lng === "hi" ? "hi-IN" : "en-IN";
-            if (v) u.voice = v;
-            u.rate = appState.speechRate;
-            u.pitch = 1;
-            u.onstart = () => { if (mySession === speakSession && myAttempt === attemptNo) anyStart = true; };
-            u.onend = done;
-            u.onerror = () => { done(); };
-            speechSynthesis.speak(u);
-          });
-          /* Could-not-start watchdog for THIS attempt. */
-          setTimeout(() => {
-            if (mySession !== speakSession || myAttempt !== attemptNo || settled || anyStart) return;
-            if (!speechSynthesis.speaking && !speechSynthesis.pending) { settled = true; finishAttempt(false); }
-          }, 3500);
-        }, 150);
-        /* Chrome stalls long speech after ~15 s unless resume() is
-           called periodically. */
-        if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
-        resumeTimer = setInterval(() => {
-          if (mySession !== speakSession) { clearInterval(resumeTimer); resumeTimer = null; return; }
-          if (speechSynthesis.speaking) speechSynthesis.resume();
-        }, 5000);
-      }
-      function finishAttempt(started) {
-        if (mySession !== speakSession) return;
-        if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
-        if (started) { setVoiceUI(false); return; }
-        if (fallback && fallback.text) {
-          const fb = fallback; fallback = null;
-          speechSynthesis.cancel();
-          showToast(appState.lang === "hi" ? "Hindi आवाज़ नहीं चली — Hinglish में बोल रहे हैं।" : "The Hindi voice didn't start — speaking Hinglish instead.");
-          runAttempt(fb.text, fb.lang);
-          return;
-        }
-        setVoiceUI(false);
-        showToast(failNote);
-      }
-      runAttempt(text, lang);
-    }
-
-    // ---- Gemini TTS: the primary voice when GEMINI_TTS_KEY is set ----
-    /* Request shape copied from Mohd's Gemini Canvas original, byte for
-       byte: POST v1beta/models/gemini-2.5-flash-preview-tts:generateContent,
-       responseModalities ["AUDIO"], prebuilt voice "Sulafat"; the reply's
-       inlineData is raw 16-bit PCM (sample rate inside the mimeType),
-       wrapped into a WAV below and played through an Audio element at
-       appState.speechRate. ONE deliberate difference from the original:
-       a single attempt with a 10 s timeout instead of 4 retried
-       attempts — any failure must reach the browser-voice fallback
-       inside the same tap, fast, and never leave the tap silent. */
-    let geminiAudio = null, geminiAudioUrl = null;
+    let geminiAudio = null, geminiAudioUrl = null, geminiChunkSettle = null;
 
     function stopGeminiAudio() {
       if (geminiAudio) { try { geminiAudio.pause(); } catch (e) {} geminiAudio = null; }
       if (geminiAudioUrl) { try { URL.revokeObjectURL(geminiAudioUrl); } catch (e) {} geminiAudioUrl = null; }
+      /* Settle any chunk still waiting on its Audio element, so the
+         playback loop wakes up, sees the bumped session, and exits —
+         nothing is left hanging with the banner up. */
+      if (geminiChunkSettle) { const s = geminiChunkSettle; geminiChunkSettle = null; s(); }
+    }
+
+    function stopAudio() {
+      speakSession++;
+      stopGeminiAudio();
+      setVoiceUI(false);
     }
 
     function base64ToArrayBuffer(base64) {
@@ -2125,11 +1974,14 @@
       return new Blob([buffer], { type: "audio/wav" });
     }
 
-    /* Speaks via Gemini for session myReq. Resolves true once Gemini
-       audio is playing (or the session was stopped meanwhile — not a
-       failure); resolves false on ANY failure: HTTP error, timeout,
-       malformed reply, or a blocked play(). */
-    async function speakWithGemini(text, lang, myReq) {
+    /* One Gemini TTS request for one chunk of text. Request shape as in
+       Mohd's Gemini Canvas original: POST
+       v1beta/models/gemini-2.5-flash-preview-tts:generateContent,
+       responseModalities ["AUDIO"], prebuilt voice "Sulafat"; the
+       reply's inlineData is raw 16-bit PCM (sample rate inside the
+       mimeType). Resolves { audioData, mimeType }; throws on ANY
+       failure — HTTP error, 10 s timeout, malformed reply. */
+    async function fetchGeminiChunk(text, lang) {
       const isHindi = lang === "hi";
       const promptPrefix = isHindi
         ? "Speak clearly and naturally in Hindi (हिन्दी): "
@@ -2163,80 +2015,86 @@
         const audioData = part && part.inlineData && part.inlineData.data;
         const mimeType = part && part.inlineData && part.inlineData.mimeType;
         if (!audioData || !mimeType || !mimeType.startsWith("audio/")) throw new Error("No audio in Gemini reply");
-        if (myReq !== speakSession) return true;
-        const rateMatch = mimeType.match(/rate=(\d+)/);
-        const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
-        const pcmBytes = base64ToArrayBuffer(audioData);
-        const pcm16 = new Int16Array(pcmBytes);
-        const wavBlob = pcmToWav(pcm16, sampleRate);
-        stopGeminiAudio();
-        const audioUrl = URL.createObjectURL(wavBlob);
-        const audio = new Audio(audioUrl);
-        audio.playbackRate = appState.speechRate;
-        geminiAudio = audio; geminiAudioUrl = audioUrl;
-        document.getElementById("audio-caption-text").textContent = text;
-        const cleanup = () => {
+        return { audioData, mimeType };
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      }
+    }
+
+    /* Fetches and plays ONE chunk through an Audio element at the
+       current speechRate (Slow 0.85 / Normal 1.0). Resolves true when
+       the chunk played to the end, false when it was stopped meanwhile
+       (Stop button, a newer Listen tap, a language switch); throws when
+       the fetch or the playback itself fails. */
+    async function playGeminiChunk(text, lang, myReq, displayText) {
+      const got = await fetchGeminiChunk(text, lang);
+      if (myReq !== speakSession) return false;
+      const rateMatch = got.mimeType.match(/rate=(\d+)/);
+      const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+      const pcm16 = new Int16Array(base64ToArrayBuffer(got.audioData));
+      const wavBlob = pcmToWav(pcm16, sampleRate);
+      stopGeminiAudio();
+      const audioUrl = URL.createObjectURL(wavBlob);
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = appState.speechRate;
+      geminiAudio = audio; geminiAudioUrl = audioUrl;
+      document.getElementById("audio-caption-text").textContent = displayText;
+      return new Promise((resolve, reject) => {
+        let done = false;
+        function cleanup() {
+          if (geminiChunkSettle === settle) geminiChunkSettle = null;
           if (geminiAudio === audio) geminiAudio = null;
           if (geminiAudioUrl === audioUrl) geminiAudioUrl = null;
           try { URL.revokeObjectURL(audioUrl); } catch (e) {}
-          if (myReq === speakSession) setVoiceUI(false);
-        };
-        audio.onended = cleanup;
-        audio.onerror = cleanup;
-        await audio.play();
-        return true;
-      } catch (err) {
-        if (timer) clearTimeout(timer);
-        if (myReq === speakSession) stopGeminiAudio();
-        return false;
-      }
-    }
-
-    /* Voice entry point for every Listen button. With a Gemini key set,
-       the natural Gemini voice goes first; an empty key or ANY Gemini
-       failure drops into the browser-voice engine below — unchanged —
-       so a tap is never silent. */
-    function speakText(text, lang, romanText) {
-      if (!GEMINI_TTS_KEY) { speakTextWebSpeech(text, lang, romanText); return; }
-      stopGeminiAudio();
-      if (voiceSupported()) { try { speechSynthesis.cancel(); } catch (e) {} }
-      const myReq = ++speakSession;
-      setVoiceUI(true);
-      document.getElementById("audio-caption-text").textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
-      speakWithGemini(text, lang, myReq).then(ok => {
-        if (myReq !== speakSession) return;
-        if (!ok) speakTextWebSpeech(text, lang, romanText);
-      });
-    }
-
-    function speakTextWebSpeech(text, lang, romanText) {
-      if (!voiceSupported()) {
-        showToast(lang === "hi"
-          ? "इस phone / browser में आवाज़ support नहीं है — वही बात इस पेज पर लिखी है।"
-          : "Voice not supported here — the same message is written on this page.");
-        return;
-      }
-      /* Claim a session up front: if the user taps Stop (or another
-         Listen button) while voices are still loading, the pending
-         callback sees a stale session and does not start speaking. */
-      const myReq = ++speakSession;
-      setVoiceUI(true);
-      document.getElementById("audio-caption-text").textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
-      ensureVoices(() => {
-        if (myReq !== speakSession) return;
-        /* No Hindi voice on this phone: an English-only engine stays
-           silent on Devanagari, so speak the same content in Roman
-           Hinglish with the English voice — audible and understood. */
-        if (lang === "hi" && romanText && !hindiVoiceReady()) {
-          showToast("Hindi आवाज़ pack नहीं मिला — Hinglish में बोल रहे हैं।");
-          startSpeaking(romanText, "en", true, null);
-          return;
         }
-        /* A Hindi voice is listed: try Devanagari on it first — with the
-           Roman text handed over as an in-tap fallback. */
-        if (lang === "hi" && romanText) { startSpeaking(text, "hi", false, { text: romanText, lang: "en" }); return; }
-        startSpeaking(text, lang, false, null);
+        function settle() {
+          if (done) return; done = true;
+          cleanup();
+          resolve(true);
+        }
+        function fail(err) {
+          if (done) return; done = true;
+          cleanup();
+          reject(err);
+        }
+        geminiChunkSettle = settle;
+        audio.onended = settle;
+        audio.onerror = () => fail(new Error("Audio playback error"));
+        const p = audio.play();
+        if (p && p.catch) p.catch(fail);
       });
+    }
+
+    /* Voice entry point for every Listen button — Gemini TTS only.
+       Chunks play in order; when the last chunk ends (or Stop is
+       tapped) the speaking UI clears. On ANY Gemini failure the
+       session stops, the UI resets, and a toast in the current UI
+       language says what happened — no other voice is tried. */
+    function speakText(text, lang) {
+      const myReq = ++speakSession;
+      stopGeminiAudio();
+      setVoiceUI(true);
+      const captionEl = document.getElementById("audio-caption-text");
+      captionEl.textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
+      const chunks = splitChunks(text);
+      (async () => {
+        try {
+          for (let i = 0; i < chunks.length; i++) {
+            if (myReq !== speakSession) return;
+            const played = await playGeminiChunk(chunks[i], lang, myReq, text);
+            if (!played || myReq !== speakSession) return;
+          }
+          if (myReq === speakSession) setVoiceUI(false);
+        } catch (err) {
+          if (myReq !== speakSession) return;
+          stopGeminiAudio();
+          setVoiceUI(false);
+          showToast(appState.lang === "hi"
+            ? "आवाज़ नहीं चल पाई — कनेक्शन जाँचकर फिर से टैप करें।"
+            : "Voice could not play — check your connection and tap again.");
+        }
+      })();
     }
 
     // =========================================================================
@@ -2342,7 +2200,7 @@
 
     function speakChatWelcome() {
       const t = UI_STRINGS[appState.lang];
-      speakText(t.chatWelcome, appState.lang, appState.lang === "hi" ? UI_STRINGS.en.chatWelcome : null);
+      speakText(t.chatWelcome, appState.lang);
     }
 
     function askSuggestedPrompt(promptText) {
@@ -2397,7 +2255,7 @@
       `;
       const air = appState.air;
       document.getElementById(safeId).addEventListener("click", () => {
-        speakText(replyText, appState.lang, appState.lang === "hi" ? `${air.place.name} mein AQI ${air.naqi} hai. ${buildSummaryRoman()}` : null);
+        speakText(replyText, appState.lang);
       });
 
       container.scrollTop = container.scrollHeight;
