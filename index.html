@@ -464,6 +464,20 @@
 
     <script>
   /* =======================================================================
+     ★★★  GEMINI VOICE KEY — Mohd, READ THIS  ★★★
+     The natural, human-sounding Gemini voice needs a Google AI Studio
+     API key. Paste the key between the quotes below. The key MUST be
+     restricted in Google Cloud Console to (a) the Generative Language
+     API only and (b) this website's domain (mohddanish305.github.io),
+     so the key is useless anywhere else.
+     Leave it EMPTY ("") and NO Gemini call is ever made — the app
+     speaks with the built-in browser voice, exactly as it does today.
+     ======================================================================= */
+  const GEMINI_TTS_KEY = "AIzaSyB8sfBuPiPPjPU31yYPilKdHJhToHPFEDg"; // <-- paste Mohd's referrer-restricted AI Studio key here
+  const GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts";
+  const GEMINI_TTS_VOICE = "Sulafat";
+
+  /* =======================================================================
      DETERMINISTIC LOGIC — ported verbatim from attempt3/logic.js
      (the CPCB breakpoint engine ClearAir's tested build uses).
      Every number this page shows is computed here or in the data layer
@@ -1868,6 +1882,7 @@
 
     function setSeniorSpeed(rate) {
       appState.speechRate = rate;
+      if (typeof geminiAudio !== "undefined" && geminiAudio) { try { geminiAudio.playbackRate = rate; } catch (e) {} }
       document.getElementById("rate-pill").textContent = `${rate === 0.85 ? '0.85x' : '1.0x'}`;
       document.getElementById("speed-slow").className = rate === 0.85
         ? "tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-ink text-white dark:bg-white dark:text-apple-ink"
@@ -1961,6 +1976,7 @@
     function stopAudio() {
       speakSession++;
       if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
+      stopGeminiAudio();
       if (voiceSupported()) speechSynthesis.cancel();
       setVoiceUI(false);
     }
@@ -2045,7 +2061,155 @@
       runAttempt(text, lang);
     }
 
+    // ---- Gemini TTS: the primary voice when GEMINI_TTS_KEY is set ----
+    /* Request shape copied from Mohd's Gemini Canvas original, byte for
+       byte: POST v1beta/models/gemini-2.5-flash-preview-tts:generateContent,
+       responseModalities ["AUDIO"], prebuilt voice "Sulafat"; the reply's
+       inlineData is raw 16-bit PCM (sample rate inside the mimeType),
+       wrapped into a WAV below and played through an Audio element at
+       appState.speechRate. ONE deliberate difference from the original:
+       a single attempt with a 10 s timeout instead of 4 retried
+       attempts — any failure must reach the browser-voice fallback
+       inside the same tap, fast, and never leave the tap silent. */
+    let geminiAudio = null, geminiAudioUrl = null;
+
+    function stopGeminiAudio() {
+      if (geminiAudio) { try { geminiAudio.pause(); } catch (e) {} geminiAudio = null; }
+      if (geminiAudioUrl) { try { URL.revokeObjectURL(geminiAudioUrl); } catch (e) {} geminiAudioUrl = null; }
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binaryString = atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    function pcmToWav(pcm16, sampleRate) {
+      const numChannels = 1;
+      const bytesPerSample = 2;
+      const blockAlign = numChannels * bytesPerSample;
+      const byteRate = sampleRate * blockAlign;
+      const dataSize = pcm16.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      }
+
+      writeString(0, "RIFF");
+      view.setUint32(4, 36 + dataSize, true);
+      writeString(8, "WAVE");
+      writeString(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, 16, true);
+      writeString(36, "data");
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < pcm16.length; i++, offset += 2) {
+        view.setInt16(offset, pcm16[i], true);
+      }
+
+      return new Blob([buffer], { type: "audio/wav" });
+    }
+
+    /* Speaks via Gemini for session myReq. Resolves true once Gemini
+       audio is playing (or the session was stopped meanwhile — not a
+       failure); resolves false on ANY failure: HTTP error, timeout,
+       malformed reply, or a blocked play(). */
+    async function speakWithGemini(text, lang, myReq) {
+      const isHindi = lang === "hi";
+      const promptPrefix = isHindi
+        ? "Speak clearly and naturally in Hindi (हिन्दी): "
+        : "Speak clearly and helpfully: ";
+      const payload = {
+        contents: [{ parts: [{ text: promptPrefix + text }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: GEMINI_TTS_VOICE }
+            }
+          }
+        },
+        model: GEMINI_TTS_MODEL
+      };
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_TTS_KEY}`;
+      const ctl = ("AbortController" in window) ? new AbortController() : null;
+      const timer = ctl ? setTimeout(() => { ctl.abort(); }, 10000) : null;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: ctl ? ctl.signal : undefined
+        });
+        if (timer) clearTimeout(timer);
+        if (!response.ok) throw new Error("Gemini TTS HTTP " + response.status);
+        const result = await response.json();
+        const part = result && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0];
+        const audioData = part && part.inlineData && part.inlineData.data;
+        const mimeType = part && part.inlineData && part.inlineData.mimeType;
+        if (!audioData || !mimeType || !mimeType.startsWith("audio/")) throw new Error("No audio in Gemini reply");
+        if (myReq !== speakSession) return true;
+        const rateMatch = mimeType.match(/rate=(\d+)/);
+        const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+        const pcmBytes = base64ToArrayBuffer(audioData);
+        const pcm16 = new Int16Array(pcmBytes);
+        const wavBlob = pcmToWav(pcm16, sampleRate);
+        stopGeminiAudio();
+        const audioUrl = URL.createObjectURL(wavBlob);
+        const audio = new Audio(audioUrl);
+        audio.playbackRate = appState.speechRate;
+        geminiAudio = audio; geminiAudioUrl = audioUrl;
+        document.getElementById("audio-caption-text").textContent = text;
+        const cleanup = () => {
+          if (geminiAudio === audio) geminiAudio = null;
+          if (geminiAudioUrl === audioUrl) geminiAudioUrl = null;
+          try { URL.revokeObjectURL(audioUrl); } catch (e) {}
+          if (myReq === speakSession) setVoiceUI(false);
+        };
+        audio.onended = cleanup;
+        audio.onerror = cleanup;
+        await audio.play();
+        return true;
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+        if (myReq === speakSession) stopGeminiAudio();
+        return false;
+      }
+    }
+
+    /* Voice entry point for every Listen button. With a Gemini key set,
+       the natural Gemini voice goes first; an empty key or ANY Gemini
+       failure drops into the browser-voice engine below — unchanged —
+       so a tap is never silent. */
     function speakText(text, lang, romanText) {
+      if (!GEMINI_TTS_KEY) { speakTextWebSpeech(text, lang, romanText); return; }
+      stopGeminiAudio();
+      if (voiceSupported()) { try { speechSynthesis.cancel(); } catch (e) {} }
+      const myReq = ++speakSession;
+      setVoiceUI(true);
+      document.getElementById("audio-caption-text").textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
+      speakWithGemini(text, lang, myReq).then(ok => {
+        if (myReq !== speakSession) return;
+        if (!ok) speakTextWebSpeech(text, lang, romanText);
+      });
+    }
+
+    function speakTextWebSpeech(text, lang, romanText) {
       if (!voiceSupported()) {
         showToast(lang === "hi"
           ? "इस phone / browser में आवाज़ support नहीं है — वही बात इस पेज पर लिखी है।"
