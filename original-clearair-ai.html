@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClearAir AI — Urban Smog & Clean Air Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', '"Noto Sans Devanagari"', 'sans-serif'],
+          },
+          colors: {
+            apple: {
+              canvas: '#F5F5F7',
+              card: '#FFFFFF',
+              subtle: '#F2F2F7',
+              border: '#E5E5EA',
+              ink: '#1D1D1F',
+              secondary: '#6E6E73',
+              tertiary: '#86868B',
+              blue: '#0071E3',
+              blueHover: '#0077ED',
+              green: '#248A3D',
+              greenBg: '#EAF6ED',
+              amber: '#B25000',
+              amberBg: '#FFF5E5',
+              red: '#D70015',
+              redBg: '#FDECEC',
+              darkCanvas: '#000000',
+              darkCard: '#1C1C1E',
+              darkSubtle: '#2C2C2E',
+              darkBorder: '#38383A',
+              darkInk: '#F5F5F7',
+              darkSecondary: '#A1A1A6'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Strictly flat, solid Apple-level styling — zero gradients anywhere */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Noto Sans Devanagari", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Subtle tactile press feedback like iOS controls */
+    .tap-scale {
+      transition: transform 0.16s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.16s ease, border-color 0.16s ease;
+    }
+    .tap-scale:active {
+      transform: scale(0.985);
+    }
+
+    /* Solid bar audio equalizer animation for Voice Mode */
+    @keyframes eqPulse {
+      0%, 100% { height: 6px; }
+      50% { height: 22px; }
+    }
+    .eq-bar {
+      animation: eqPulse 0.85s ease-in-out infinite;
+    }
+    .eq-bar:nth-child(2) { animation-delay: 0.15s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.30s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.45s; }
+    .eq-bar:nth-child(5) { animation-delay: 0.20s; }
+
+    /* Custom clean scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D1D1D6;
+      border-radius: 9999px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #3A3A3C;
+    }
+  </style>
+</head>
+<body class="bg-apple-canvas text-apple-ink dark:bg-apple-darkCanvas dark:text-apple-darkInk min-h-screen transition-colors duration-200">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-apple-canvas/95 dark:bg-apple-darkCanvas/95 backdrop-blur-md border-b border-apple-border dark:border-apple-darkBorder">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+
+      <!-- Brand Mark -->
+      <div class="flex items-center gap-2.5 shrink-0">
+        <div class="w-9 h-9 rounded-xl bg-apple-ink dark:bg-white flex items-center justify-center">
+          <svg class="w-5 h-5 text-white dark:text-apple-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h11a3 3 0 1 0-2.83-4" />
+            <path d="M4 12h15a3 3 0 1 1-2.83 4" />
+            <path d="M4 16h8a2.5 2.5 0 1 1-2.36 3.33" />
+          </svg>
+        </div>
+        <span class="font-semibold text-[18px] tracking-tight">ClearAir</span>
+      </div>
+
+      <!-- Segmented Navigation (Desktop) -->
+      <nav aria-label="Primary views" class="hidden md:flex items-center p-1 rounded-full bg-apple-subtle dark:bg-apple-darkSubtle">
+        <button id="nav-overview" onclick="switchTab('overview')" data-i18n="navPlan" class="tab-btn px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm">
+          Daily Plan
+        </button>
+        <button id="nav-voice" onclick="switchTab('voice')" data-i18n="navVoice" class="tab-btn px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors text-apple-secondary dark:text-apple-darkSecondary hover:text-apple-ink dark:hover:text-white">
+          Tap &amp; Listen
+        </button>
+        <button id="nav-ask" onclick="switchTab('ask')" data-i18n="navAsk" class="tab-btn px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors text-apple-secondary dark:text-apple-darkSecondary hover:text-apple-ink dark:hover:text-white">
+          Ask AI
+        </button>
+      </nav>
+
+      <!-- Right Controls: Language Switcher, Quick Listen & Theme -->
+      <div class="flex items-center gap-2">
+        <!-- English / Hindi Toggle -->
+        <div role="group" aria-label="Language selector" class="flex items-center p-0.5 rounded-full bg-apple-subtle dark:bg-apple-darkSubtle border border-apple-border dark:border-apple-darkBorder">
+          <button id="lang-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm">
+            EN
+          </button>
+          <button id="lang-hi" onclick="setLanguage('hi')" class="px-2.5 py-1 rounded-full text-[12px] font-semibold text-apple-secondary dark:text-apple-darkSecondary">
+            हिंदी
+          </button>
+        </div>
+
+        <!-- One-Tap Voice Briefing -->
+        <button onclick="activateQuickSeniorBriefing()" class="tap-scale px-3.5 py-2 rounded-full bg-apple-blue hover:bg-apple-blueHover text-white text-[13px] font-medium flex items-center gap-1.5">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span data-i18n="btnListen">Listen</span>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" class="tap-scale w-9 h-9 rounded-full bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder flex items-center justify-center text-apple-ink dark:text-apple-darkInk">
+          <svg id="icon-moon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+          <svg id="icon-sun" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Segmented Navigation -->
+    <div class="md:hidden px-4 pb-2.5">
+      <div class="grid grid-cols-3 p-1 rounded-full bg-apple-subtle dark:bg-apple-darkSubtle">
+        <button id="mob-nav-overview" onclick="switchTab('overview')" data-i18n="navPlan" class="py-1.5 rounded-full text-[12px] font-medium bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm">
+          Daily Plan
+        </button>
+        <button id="mob-nav-voice" onclick="switchTab('voice')" data-i18n="navVoice" class="py-1.5 rounded-full text-[12px] font-medium text-apple-secondary dark:text-apple-darkSecondary">
+          Tap &amp; Listen
+        </button>
+        <button id="mob-nav-ask" onclick="switchTab('ask')" data-i18n="navAsk" class="py-1.5 rounded-full text-[12px] font-medium text-apple-secondary dark:text-apple-darkSecondary">
+          Ask AI
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Active Audio Player Bar -->
+  <div id="audio-banner" class="hidden sticky top-16 z-30 bg-apple-ink dark:bg-white text-white dark:text-apple-ink border-b border-apple-border dark:border-apple-darkBorder">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <div id="audio-visualizer" class="flex items-center gap-1 h-5 shrink-0">
+          <span class="eq-bar w-1 bg-white dark:bg-apple-ink rounded-full"></span>
+          <span class="eq-bar w-1 bg-white dark:bg-apple-ink rounded-full"></span>
+          <span class="eq-bar w-1 bg-white dark:bg-apple-ink rounded-full"></span>
+          <span class="eq-bar w-1 bg-white dark:bg-apple-ink rounded-full"></span>
+        </div>
+        <p id="audio-caption-text" class="text-[14px] font-medium truncate">Speaking...</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="toggleSpeechRate()" id="rate-pill" class="px-3 py-1.5 rounded-full bg-white/15 dark:bg-black/10 text-[12px] font-medium">
+          1.0x
+        </button>
+        <button onclick="stopAudio()" data-i18n="btnStop" class="px-3.5 py-1.5 rounded-full bg-apple-red text-white text-[12px] font-semibold">
+          Stop
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+    <!-- Clean City Selector Bar -->
+    <section aria-label="City selector" class="bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div id="city-chips-container" class="flex flex-wrap items-center gap-1.5">
+        <!-- Rendered dynamically for EN / HI -->
+      </div>
+
+      <form onsubmit="handleCustomCitySubmit(event)" class="flex items-center gap-2 w-full md:w-auto">
+        <input id="custom-city-input" type="text" placeholder="Search city..." class="flex-1 md:w-52 px-3.5 py-2 rounded-full bg-apple-subtle dark:bg-apple-darkSubtle border border-transparent focus:border-apple-blue focus:bg-white dark:focus:bg-apple-darkCard text-[13px] outline-none transition-colors" />
+        <button type="submit" id="refresh-city-btn" data-i18n="btnGo" class="tap-scale px-4 py-2 rounded-full bg-apple-ink dark:bg-white text-white dark:text-apple-ink text-[13px] font-medium shrink-0">
+          Go
+        </button>
+      </form>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 1: DAILY PLAN (STREAMLINED & EASY TO SCAN)           -->
+    <!-- ========================================================= -->
+    <div id="view-overview" class="space-y-5">
+
+      <!-- Bento Hero Grid -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- Left 7 Cols: Air Status & Key Takeaway -->
+        <div class="lg:col-span-7 bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-6 flex flex-col justify-between gap-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="live-dot" class="w-2 h-2 rounded-full bg-apple-red"></span>
+                <span id="current-city-title" class="text-[14px] font-medium text-apple-secondary dark:text-apple-darkSecondary">Hyderabad</span>
+              </div>
+              <div class="mt-1.5 flex items-baseline gap-3.5 flex-wrap">
+                <h1 id="aqi-number" class="text-5xl sm:text-6xl font-semibold tracking-tighter tabular-nums">–</h1>
+                <span id="aqi-badge" class="px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-redBg text-apple-red">
+                  Loading…
+                </span>
+              </div>
+            </div>
+
+            <button onclick="speakHeroBriefing()" class="tap-scale shrink-0 px-4 py-2.5 rounded-2xl bg-apple-subtle dark:bg-apple-darkSubtle hover:bg-apple-border/70 dark:hover:bg-apple-darkBorder text-apple-ink dark:text-white text-[13px] font-medium flex items-center gap-2">
+              <svg class="w-4 h-4 text-apple-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <span data-i18n="btnListen">Listen</span>
+            </button>
+          </div>
+
+          <!-- 3 Minimal Metric Tiles -->
+          <div class="grid grid-cols-3 gap-2.5">
+            <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-3.5">
+              <p class="text-[12px] text-apple-secondary dark:text-apple-darkSecondary">PM2.5</p>
+              <p id="pm25-val" class="mt-1 text-[20px] font-semibold tabular-nums">– <span class="text-[11px] font-normal text-apple-secondary">µg/m³</span></p>
+              <p id="pm25-note" class="mt-0.5 text-[11px] text-apple-red font-medium">—</p>
+            </div>
+            <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-3.5">
+              <p class="text-[12px] text-apple-secondary dark:text-apple-darkSecondary">PM10</p>
+              <p id="pm10-val" class="mt-1 text-[20px] font-semibold tabular-nums">– <span class="text-[11px] font-normal text-apple-secondary">µg/m³</span></p>
+              <p id="pm10-note" class="mt-0.5 text-[11px] text-apple-secondary dark:text-apple-darkSecondary">—</p>
+            </div>
+            <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-3.5">
+              <p data-i18n="lblBestTime" class="text-[12px] text-apple-secondary dark:text-apple-darkSecondary">Safe Hours</p>
+              <p id="safe-window-val" class="mt-1 text-[17px] sm:text-[18px] font-semibold tabular-nums">—</p>
+              <p data-i18n="lblSunLifts" class="mt-0.5 text-[11px] text-apple-green font-medium">Best for walks</p>
+            </div>
+          </div>
+
+          <!-- Crisp 2-Line Summary -->
+          <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-4">
+            <p id="hero-summary-text" class="text-[14px] leading-relaxed text-apple-ink dark:text-apple-darkInk">
+              Loading live air data…
+            </p>
+            <p id="data-source-line" class="mt-2 text-[11px] text-apple-secondary dark:text-apple-darkSecondary"></p>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Household Filter & Direct Impact -->
+        <div class="lg:col-span-5 bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-6 flex flex-col justify-between gap-5">
+          <div>
+            <h2 data-i18n="lblHousehold" class="text-[16px] font-semibold tracking-tight">Your Household</h2>
+            <div id="profile-chips-container" class="mt-3 flex flex-wrap gap-2">
+              <!-- Rendered dynamically for EN / HI -->
+            </div>
+          </div>
+
+          <!-- Clean Direct Impact Meter -->
+          <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span data-i18n="lblYourImpact" class="text-[13px] font-semibold">Today's Impact</span>
+              <span id="impact-percent-badge" class="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-apple-greenBg text-apple-green tabular-nums">
+                —
+              </span>
+            </div>
+
+            <div class="w-full h-2.5 rounded-full bg-apple-border dark:bg-apple-darkBorder overflow-hidden">
+              <div id="impact-progress-bar" class="h-full bg-apple-green rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <p data-i18n="lblPmSaved" class="text-[11px] text-apple-secondary dark:text-apple-darkSecondary">PM2.5 Avoided</p>
+                <p id="impact-pm-saved" class="text-[16px] font-semibold tabular-nums">—</p>
+              </div>
+              <div>
+                <p data-i18n="lblCo2Saved" class="text-[11px] text-apple-secondary dark:text-apple-darkSecondary">CO₂ Prevented</p>
+                <p id="impact-co2-saved" class="text-[16px] font-semibold tabular-nums">—</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Compact Senior Voice Banner -->
+      <section class="bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-2xl bg-apple-blue text-white flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 data-i18n="seniorBannerTitle" class="text-[15px] font-semibold">Senior Tap &amp; Listen Mode</h2>
+            <p data-i18n="seniorBannerSub" class="text-[13px] text-apple-secondary dark:text-apple-darkSecondary">Big buttons that speak advice aloud in English or Hindi.</p>
+          </div>
+        </div>
+        <button onclick="switchTab('voice')" data-i18n="btnOpen" class="tap-scale px-4 py-2.5 rounded-2xl bg-apple-ink dark:bg-white text-white dark:text-apple-ink text-[13px] font-medium shrink-0">
+          Open
+        </button>
+      </section>
+
+      <!-- Action Cards Section -->
+      <section class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 data-i18n="lblActionsHeading" class="text-[19px] font-semibold tracking-tight">Simple Steps for Today</h2>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <div id="filter-chips-container" class="inline-flex p-1 rounded-full bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder">
+              <!-- Rendered dynamically for EN / HI -->
+            </div>
+
+            <button onclick="generatePersonalizedPlan()" id="regenerate-btn" class="tap-scale px-3.5 py-2 rounded-full bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder text-[12px] font-medium flex items-center gap-1.5 hover:border-apple-ink dark:hover:border-white">
+              <svg class="w-3.5 h-3.5 text-apple-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
+              </svg>
+              <span data-i18n="btnRefresh">New Plan</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="actions-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 2: SENIOR "TAP & LISTEN" ACCESSIBLE VOICE MODE       -->
+    <!-- ========================================================= -->
+    <div id="view-voice" class="hidden space-y-5">
+      <section class="bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-6 sm:p-7">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-apple-border dark:border-apple-darkBorder">
+          <div>
+            <h1 data-i18n="seniorHeading" class="text-2xl sm:text-3xl font-semibold tracking-tight">Tap Any Box to Listen</h1>
+            <p data-i18n="seniorSub" class="text-[16px] text-apple-secondary dark:text-apple-darkSecondary mt-1">
+              Clear voice advice in English or Hindi.
+            </p>
+          </div>
+
+          <!-- Speed & Language Controls -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="setSeniorSpeed(0.85)" id="speed-slow" data-i18n="btnSlow" class="tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-subtle dark:bg-apple-darkSubtle text-apple-ink dark:text-white">
+              Slow Voice
+            </button>
+            <button onclick="setSeniorSpeed(1.0)" id="speed-normal" data-i18n="btnNormal" class="tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-ink text-white dark:bg-white dark:text-apple-ink">
+              Normal
+            </button>
+          </div>
+        </div>
+
+        <!-- Giant Primary Briefing Button -->
+        <button onclick="speakSeniorFullBriefing()" class="tap-scale mt-5 w-full text-left bg-apple-canvas dark:bg-apple-darkSubtle hover:bg-apple-border/60 dark:hover:bg-apple-darkBorder border-2 border-apple-ink dark:border-white rounded-3xl p-6 flex items-center justify-between gap-5">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2.5">
+              <span id="senior-aqi-pill" class="px-3 py-1 rounded-full text-[14px] font-bold bg-apple-redBg text-apple-red">
+                AQI –
+              </span>
+              <span id="senior-city-label" class="text-[15px] font-medium text-apple-secondary dark:text-apple-darkSecondary">Hyderabad</span>
+            </div>
+            <h2 data-i18n="seniorBigCardTitle" class="text-xl sm:text-2xl font-semibold tracking-tight">
+              Tap Here to Hear Today's Air Report
+            </h2>
+          </div>
+
+          <div class="w-16 h-16 rounded-full bg-apple-blue text-white flex items-center justify-center shrink-0">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Live Spoken Subtitles Box -->
+        <div id="senior-spoken-box" class="hidden mt-5 bg-apple-greenBg dark:bg-apple-darkSubtle border border-apple-green/30 rounded-3xl p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <span data-i18n="lblSpeakingNow" class="text-[13px] font-bold uppercase tracking-wider text-apple-green">Speaking Now</span>
+            <button onclick="stopAudio()" data-i18n="btnStop" class="px-3.5 py-1 rounded-full bg-apple-ink text-white text-[13px] font-semibold">Stop</button>
+          </div>
+          <p id="senior-spoken-text" class="text-[19px] sm:text-[22px] leading-relaxed font-medium text-apple-ink dark:text-white"></p>
+        </div>
+      </section>
+
+      <!-- 6 Large One-Tap Question Cards -->
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-4" id="senior-cards-grid">
+        <!-- Populated dynamically -->
+      </section>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 3: ASK CLEARAIR AI (CLEAN Q&A)                       -->
+    <!-- ========================================================= -->
+    <div id="view-ask" class="hidden space-y-5">
+      <section class="bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder rounded-3xl p-6 space-y-4">
+        <h1 data-i18n="askHeading" class="text-xl font-semibold tracking-tight">Ask ClearAir AI</h1>
+
+        <!-- 3 Quick Starter Prompts -->
+        <div id="suggested-prompts-container" class="flex flex-wrap gap-2">
+          <!-- Rendered dynamically for EN / HI -->
+        </div>
+
+        <!-- Conversation Thread -->
+        <div id="chat-messages" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Clean Input Bar -->
+        <form onsubmit="handleChatSubmit(event)" class="flex items-center gap-2 pt-2 border-t border-apple-border dark:border-apple-darkBorder">
+          <input id="chat-input" type="text" placeholder="Ask about smog, masks, or clean air..." class="flex-1 px-4 py-3 rounded-2xl bg-apple-canvas dark:bg-apple-darkSubtle text-[14px] outline-none border border-transparent focus:border-apple-blue" />
+          <button type="submit" id="chat-submit-btn" data-i18n="btnAsk" class="tap-scale px-5 py-3 rounded-2xl bg-apple-ink dark:bg-white text-white dark:text-apple-ink text-[14px] font-medium shrink-0">
+            Ask
+          </button>
+        </form>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Minimalist Footer -->
+  <footer class="max-w-5xl mx-auto px-4 sm:px-6 py-6 border-t border-apple-border dark:border-apple-darkBorder mt-8 flex items-center justify-between text-[12px] text-apple-secondary dark:text-apple-darkSecondary">
+    <span>ClearAir AI</span>
+    <span data-i18n="footerTag">Clean Air · Healthy Families</span>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm bg-apple-ink dark:bg-white text-white dark:text-apple-ink px-4 py-3 rounded-2xl shadow-lg text-[13px] font-medium"></div>
+
+    <script>
+  /* =======================================================================
+     DETERMINISTIC LOGIC — ported verbatim from attempt3/logic.js
+     (the CPCB breakpoint engine ClearAir's tested build uses).
+     Every number this page shows is computed here or in the data layer
+     below — never invented, never taken from an AI model.
+     ======================================================================= */
+  const ClearAirLogic = (function () {
+  "use strict";
+
+  /**
+   * Piecewise-linear sub-index for one pollutant.
+   *
+   * @param {number} v  Pollutant concentration (units per the table).
+   * @param {Array<[number, number, number]>} bp  Breakpoint rows
+   *   [upperConcentration, indexLow, indexHigh], ascending.
+   * @returns {number} Sub-index, rounded to the nearest integer.
+   *
+   * The value is interpolated linearly between the previous row's top
+   * (concentration, index) point and this row's top point; the first row
+   * interpolates from (0, 0). Values above the last row return that
+   * row's indexHigh. Formula: the CPCB sub-index interpolation,
+   * I = I_lo + (I_hi - I_lo) * (C - C_lo) / (C_hi - C_lo).
+   */
+  function subIndex(v, bp) { // bp: [[conc,lo,hi],...]
+    for (var i = 0; i < bp.length; i++) { var b = bp[i];
+      if (v <= b[0] || i === bp.length - 1) { var p = i === 0 ? { c0: 0, i0: 0 } : { c0: bp[i - 1][0], i0: bp[i - 1][2] };
+        if (b[0] === p.c0) return b[2];
+        return Math.round(p.i0 + (b[2] - p.i0) * (v - p.c0) / (b[0] - p.c0)); } }
+    return 500;
+  }
+
+  /**
+   * CPCB (India) breakpoint tables, one row per AQI band:
+   * [upper concentration, sub-index low, sub-index high].
+   * Source: CPCB National Air Quality Index breakpoints.
+   * Units: µg/m³ for PM2.5, PM10, NO2, SO2, O3; mg/m³ (8 h) for CO.
+   * The app feeds each pollutant's trailing mean (24 h; 8 h for O3/CO).
+   */
+  var BP = {
+    pm25: [[30, 0, 50], [60, 51, 100], [90, 101, 200], [120, 201, 300], [250, 301, 400], [500, 401, 500]],
+    pm10: [[50, 0, 50], [100, 51, 100], [200, 101, 200], [300, 201, 300], [400, 301, 400], [500, 401, 500]],
+    no2: [[40, 0, 50], [80, 51, 100], [180, 101, 200], [280, 201, 300], [400, 301, 400], [800, 401, 500]],
+    so2: [[40, 0, 50], [80, 51, 100], [380, 101, 200], [800, 201, 300], [1600, 301, 400], [3200, 401, 500]],
+    o3: [[50, 0, 50], [100, 51, 100], [168, 101, 200], [208, 201, 300], [748, 301, 400], [1200, 401, 500]],
+    co: [[1, 0, 50], [2, 51, 100], [10, 101, 200], [17, 201, 300], [34, 301, 400], [50, 401, 500]] // mg/m3, 8h
+  };
+
+  /**
+   * US EPA PM2.5 breakpoint table (24 h, µg/m³), same row format as BP.
+   * Source: US EPA AQI breakpoints for PM2.5.
+   *
+   * Note: the ClearAir page displays the US AQI value supplied by the
+   * live Open-Meteo/CAMS feed rather than computing it; this table and
+   * epaAqiPm25() exist so the shared subIndex() interpolation engine is
+   * specified and tested against the EPA scale too.
+   */
+  var BP_EPA_PM25 = [[12, 0, 50], [35.4, 51, 100], [55.4, 101, 150], [150.4, 151, 200], [250.4, 201, 300], [500.4, 301, 500]];
+
+  /**
+   * US EPA AQI for a PM2.5 concentration, via the shared subIndex()
+   * interpolation over BP_EPA_PM25.
+   *
+   * @param {number} v  PM2.5 concentration in µg/m³.
+   * @returns {number} EPA AQI sub-index for PM2.5.
+   */
+  function epaAqiPm25(v) { return subIndex(v, BP_EPA_PM25); }
+
+  /**
+   * CPCB NAQI from trailing-mean pollutant concentrations.
+   *
+   * @param {{pm25:number, pm10:number, no2:number, so2:number, o3:number, co:number}} trail
+   *   Trailing means in the units of BP (CO already converted to mg/m³).
+   * @returns {{subs: Object, naqi: number}} Per-pollutant sub-indices and
+   *   the NAQI, which CPCB defines as the maximum sub-index.
+   */
+  function naqiFromMeans(trail) {
+    var subs = { pm25: subIndex(trail.pm25, BP.pm25), pm10: subIndex(trail.pm10, BP.pm10), no2: subIndex(trail.no2, BP.no2), so2: subIndex(trail.so2, BP.so2), o3: subIndex(trail.o3, BP.o3), co: subIndex(trail.co, BP.co) };
+    return { subs: subs, naqi: Math.max(subs.pm25, subs.pm10, subs.no2, subs.so2, subs.o3, subs.co) };
+  }
+
+  /**
+   * CPCB category for a NAQI value.
+   * @param {number} a  NAQI (0–500).
+   * @returns {[string, string]} [label, CSS colour variable].
+   */
+  function catIN(a) { return a <= 50 ? ["Good", "var(--good)"] : a <= 100 ? ["Satisfactory", "var(--good)"] : a <= 200 ? ["Moderate", "var(--mod)"] : a <= 300 ? ["Poor", "var(--poor)"] : a <= 400 ? ["Very Poor", "var(--vpoor)"] : ["Severe", "var(--severe)"]; }
+
+  /**
+   * US EPA category for an AQI value.
+   * @param {number} a  US AQI (0–500).
+   * @returns {[string, string]} [label, CSS colour variable].
+   */
+  function catUS(a) { return a <= 50 ? ["Good", "var(--good)"] : a <= 100 ? ["Moderate", "var(--fair)"] : a <= 150 ? ["Unhealthy for sensitive groups", "var(--mod)"] : a <= 200 ? ["Unhealthy", "var(--poor)"] : a <= 300 ? ["Very Unhealthy", "var(--vpoor)"] : ["Hazardous", "var(--severe)"]; }
+
+  /**
+   * Health profiles: [id, label, lucide icon, sensitivity factor].
+   * The factor multiplies the base risk — asthma (1.8) is most
+   * sensitive, a general adult (1.0) is the baseline.
+   */
+  var PERSONAS = [["general", "General adult", "person-standing", 1], ["children", "Children", "baby", 1.5], ["elderly", "Elderly (60+)", "accessibility", 1.4], ["asthma", "Asthma / lungs", "stethoscope", 1.8], ["heart", "Heart condition", "heart-pulse", 1.6], ["pregnant", "Pregnant", "heart", 1.5], ["athlete", "Athlete / outdoor worker", "dumbbell", 1.3]];
+
+  /**
+   * Activity breathing-rate factors: { f: multiplier vs rest-ish walk,
+   * label: gerund used in verdict text }.
+   */
+  var ACTF = { walk: { f: 1, label: "walking" }, run: { f: 2.1, label: "running" }, cycle: { f: 1.7, label: "cycling" }, commute: { f: 0.9, label: "commuting" }, play: { f: 1.6, label: "playing outside" }, work: { f: 1.4, label: "working outdoors" } };
+
+  /**
+   * Personal Risk Score (0–100) for one outing.
+   *
+   * @param {number} cpcb  Current CPCB NAQI (0–500).
+   * @param {number} healthFactor  Persona sensitivity (see PERSONAS).
+   * @param {number} activityFactor  Activity breathing factor (see ACTF).
+   * @param {number} durationMin  Minutes outdoors.
+   * @param {boolean} masked  True if a fitted N95 is worn.
+   * @returns {number} Integer score clamped to 1–100.
+   *
+   * Formula: base = min(100, NAQI / 5) maps the 0–500 scale onto
+   * 0–100; score = base × health × activity × (0.55 + minutes / 200);
+   * a fitted N95 multiplies the result by 0.35.
+   */
+  function riskScore(cpcb, healthFactor, activityFactor, durationMin, masked) {
+    var base = Math.min(100, cpcb / 5); // CPCB 500 -> 100
+    var score = base * healthFactor * activityFactor * (0.55 + durationMin / 200);
+    if (masked) score *= 0.35;
+    return Math.max(1, Math.min(100, Math.round(score)));
+  }
+
+  /**
+   * Verdict band for a risk score: 0 fine, 1 okay with care,
+   * 2 cut it short / mask up, 3 skip it outdoors.
+   * @param {number} score  Risk score 1–100.
+   * @returns {number} Band 0–3.
+   */
+  function riskBand(score) { return score < 25 ? 0 : score < 50 ? 1 : score < 75 ? 2 : 3; }
+
+  /**
+   * Inhaled PM2.5 dose for an activity, in µg.
+   *
+   * @param {number} pm25  PM2.5 concentration in µg/m³.
+   * @param {number} rate  Breathing-rate factor from the simulator UI.
+   * @param {number} minutes  Duration in minutes.
+   * @returns {number} Dose in µg: pm25 × rate × (minutes / 60).
+   */
+  function exposureDose(pm25, rate, minutes) { return pm25 * rate * (minutes / 60); }
+
+  /**
+   * Dose remaining while wearing a fitted N95: 5% of the unmasked dose
+   * (≈95% of PM2.5 filtered).
+   * @param {number} dose  Unmasked dose in µg.
+   * @returns {number} Masked dose in µg.
+   */
+  function maskedDose(dose) { return dose * 0.05; }
+
+  /**
+   * Best 2-hour window in a series of hourly PM2.5 values: the
+   * consecutive pair with the lowest mean concentration.
+   *
+   * @param {Array<{t: string, pm: number}>} hours  Hourly entries,
+   *   earliest first (the app passes the next 24 hours).
+   * @returns {?{avg: number, from: string, to: string}} The winning
+   *   window (mean PM2.5 and the two hour timestamps), or null when
+   *   fewer than two hours are available. Ties keep the earliest pair.
+   */
+  function bestWindowFromHours(hours) {
+    var best = null;
+    for (var i = 0; i + 1 < hours.length; i++) { var avg = (hours[i].pm + hours[i + 1].pm) / 2; if (!best || avg < best.avg) best = { avg: avg, from: hours[i].t, to: hours[i + 1].t }; }
+    return best;
+  }
+
+  return {
+    subIndex: subIndex,
+    BP: BP,
+    BP_EPA_PM25: BP_EPA_PM25,
+    epaAqiPm25: epaAqiPm25,
+    naqiFromMeans: naqiFromMeans,
+    catIN: catIN,
+    catUS: catUS,
+    PERSONAS: PERSONAS,
+    ACTF: ACTF,
+    riskScore: riskScore,
+    riskBand: riskBand,
+    exposureDose: exposureDose,
+    maskedDose: maskedDose,
+    bestWindowFromHours: bestWindowFromHours
+  };
+})();
+
+    // =========================================================================
+    // ClearAir — Mohd's Gemini-Canvas design, fixed data layer (Nov 2026)
+    //
+    // What changed vs the Canvas original, and why:
+    //  • FIX 1 (live data): the Gemini grounded-search client is GONE (its
+    //    API key was an empty placeholder, so it could never work outside
+    //    Canvas). City data now comes from Open-Meteo (keyless): geocoding
+    //    for ANY city, the Copernicus CAMS air-quality feed for pollutants,
+    //    and the CPCB NAQI is COMPUTED from those values by the ported
+    //    ClearAirLogic engine above — never invented by an AI.
+    //  • FIX 2 (one source of truth): a single computed state object
+    //    (appState.air) is built once per city load and feeds EVERY view —
+    //    hero, steps, impact meter, Tap & Listen answers and Ask AI — so
+    //    the same city can never show two different AQIs again. "Today's
+    //    Impact" is computed from the live PM2.5 with the exposure-dose
+    //    formulas (dose without mask − dose with N95), not template sums.
+    //  • FIX 3 (real AI + working voice): Ask AI calls the Pollinations
+    //    text API grounded ONLY in the computed live facts, with an honest
+    //    source label and a labelled built-in fallback. All speech uses
+    //    the Web Speech engine (the Gemini TTS endpoint needed a key):
+    //    voices are awaited (~3 s), Hindi picks hi-IN → any Hindi →
+    //    Google Hindi by name, and if a Hindi voice errors mid-tap the
+    //    same tap retries in Roman Hinglish instead of going silent.
+    // =========================================================================
+
+    const UI_STRINGS = {
+      en: {
+        navPlan: "Daily Plan",
+        navVoice: "Tap & Listen",
+        navAsk: "Ask AI",
+        btnListen: "Listen",
+        btnStop: "Stop",
+        btnGo: "Go",
+        searchCityPlaceholder: "Search city...",
+        lblBestTime: "Safe Hours",
+        lblSunLifts: "Best for walks",
+        lblHousehold: "Your Household",
+        lblYourImpact: "Today's Impact",
+        lblPmSaved: "PM2.5 Avoided",
+        lblCo2Saved: "CO₂ Prevented (est.)",
+        seniorBannerTitle: "Senior Tap & Listen Mode",
+        seniorBannerSub: "Big buttons that speak advice aloud in English or Hindi.",
+        btnOpen: "Open",
+        lblActionsHeading: "Simple Steps for Today",
+        btnRefresh: "New Plan",
+        seniorHeading: "Tap Any Box to Listen",
+        seniorSub: "Clear voice advice in English or Hindi.",
+        btnSlow: "Slow Voice",
+        btnNormal: "Normal",
+        seniorBigCardTitle: "Tap Here to Hear Today's Air Report",
+        lblSpeakingNow: "Speaking Now",
+        askHeading: "Ask ClearAir AI",
+        chatPlaceholder: "Ask about smog, masks, or clean air...",
+        btnAsk: "Ask",
+        chatWelcome: "Ask me how to keep indoor air clean, protect seniors from smog, or cut daily pollution.",
+        footerTag: "Clean Air · Healthy Families",
+        filterAll: "All",
+        filterRoutine: "Routines",
+        filterIndoor: "Home Hacks",
+        filterCommunity: "Community",
+        lblHealth: "Health",
+        lblPlanet: "Planet",
+        btnDone: "Done Today",
+        btnDoThis: "I'll Do This",
+        exposureSuffix: "Smoke",
+        profSeniors: "Seniors (65+)",
+        profKids: "Children",
+        profAsthma: "Asthma",
+        profNoPurifier: "No Purifier",
+        profCommuter: "Commuter",
+        cats: ["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"],
+        domNames: { pm25: "fine PM2.5 particles", pm10: "coarse PM10 dust", no2: "traffic NO₂", o3: "ozone", so2: "sulphur dioxide", co: "carbon monoxide" },
+        srcPrefix: "Live · Open-Meteo (Copernicus CAMS) · Updated ",
+        loadingShort: "Loading…",
+        loadingData: "Loading live air data…",
+        badgeUnavailable: "Unavailable",
+        loadError: "Live data couldn't load — check your connection and search again to retry. No sample numbers are ever shown.",
+        loadErrorShort: "Live data couldn't load.",
+        refreshFailed: "Refresh failed — showing the last live reading.",
+        notFound: "Place not found — try another name.",
+        dataLoadingToast: "Live data is still loading…",
+        aiLabel: "AI answer · from the live data above",
+        guideLabel: "Built-in guide · from the live data above",
+        planFailed: "AI plan unavailable — standard steps shown",
+        suggestedPrompts: [
+          "How to clean room air without a purifier?",
+          "Best alternatives to burning dry winter leaves?",
+          "Safe morning schedule for seniors and kids?"
+        ]
+      },
+      hi: {
+        navPlan: "आज की योजना",
+        navVoice: "सुनें (बुजुर्ग)",
+        navAsk: "सवाल पूछें",
+        btnListen: "सुनें",
+        btnStop: "रोकें",
+        btnGo: "खोजें",
+        searchCityPlaceholder: "शहर का नाम लिखें...",
+        lblBestTime: "सुरक्षित समय",
+        lblSunLifts: "टहलने के लिए सही",
+        lblHousehold: "आपका परिवार",
+        lblYourImpact: "आज का असर",
+        lblPmSaved: "धुएं से बचाव",
+        lblCo2Saved: "प्रदूषण में कमी (अनुमान)",
+        seniorBannerTitle: "बुजुर्गों के लिए 'दबाएं और सुनें' मोड",
+        seniorBannerSub: "बड़े बटन जिन्हें दबाकर हिंदी या अंग्रेजी में सलाह सुन सकते हैं।",
+        btnOpen: "खोलें",
+        lblActionsHeading: "आज के आसान उपाय",
+        btnRefresh: "नए सुझाव",
+        seniorHeading: "सुनने के लिए किसी भी बॉक्स को दबाएं",
+        seniorSub: "हिंदी और अंग्रेजी में साफ आवाज़ में सलाह।",
+        btnSlow: "धीमी आवाज़",
+        btnNormal: "सामान्य",
+        seniorBigCardTitle: "आज की हवा का हाल सुनने के लिए यहाँ दबाएं",
+        lblSpeakingNow: "अभी बोल रहा है",
+        askHeading: "ClearAir AI से पूछें",
+        chatPlaceholder: "स्मॉग, मास्क या घर की हवा साफ रखने के बारे में पूछें...",
+        btnAsk: "पूछें",
+        chatWelcome: "मुझसे पूछें कि घर की हवा कैसे साफ रखें, बुजुर्गों को धुएं से कैसे बचाएं, या प्रदूषण कैसे कम करें।",
+        footerTag: "साफ हवा · स्वस्थ परिवार",
+        filterAll: "सभी",
+        filterRoutine: "दिनचर्या",
+        filterIndoor: "घर के उपाय",
+        filterCommunity: "मोहल्ला",
+        lblHealth: "सेहत",
+        lblPlanet: "पर्यावरण",
+        btnDone: "आज करेंगे",
+        btnDoThis: "चुनें",
+        exposureSuffix: "धुआं कम",
+        profSeniors: "बुजुर्ग (65+)",
+        profKids: "बच्चे",
+        profAsthma: "अस्थमा / सांस",
+        profNoPurifier: "बिना प्यूरीफायर",
+        profCommuter: "बाहर यात्रा",
+        cats: ["अच्छी", "संतोषजनक", "मध्यम", "खराब", "बहुत खराब", "गंभीर"],
+        domNames: { pm25: "बारीक PM2.5 कण", pm10: "PM10 धूल", no2: "ट्रैफ़िक का NO₂", o3: "ओज़ोन", so2: "सल्फर डाइऑक्साइड", co: "कार्बन मोनोऑक्साइड" },
+        srcPrefix: "लाइव · Open-Meteo (Copernicus CAMS) · अपडेट ",
+        loadingShort: "लोड हो रहा है…",
+        loadingData: "लाइव हवा का डेटा लोड हो रहा है…",
+        badgeUnavailable: "उपलब्ध नहीं",
+        loadError: "लाइव डेटा नहीं आया — कनेक्शन देखें और फिर से खोजकर कोशिश करें। कोई नमूना नंबर कभी नहीं दिखाया जाता।",
+        loadErrorShort: "लाइव डेटा नहीं आया।",
+        refreshFailed: "रीफ़्रेश नहीं हुआ — पिछली लाइव रीडिंग दिखाई जा रही है।",
+        notFound: "यह जगह नहीं मिली — कोई और नाम आज़माएं।",
+        dataLoadingToast: "लाइव डेटा अभी आ रहा है…",
+        aiLabel: "AI जवाब · ऊपर के लाइव डेटा से",
+        guideLabel: "बिल्ट-इन गाइड · ऊपर के लाइव डेटा से",
+        planFailed: "AI योजना उपलब्ध नहीं — सामान्य उपाय दिखाए गए हैं",
+        suggestedPrompts: [
+          "बिना एयर प्यूरीफायर के कमरे की हवा कैसे साफ रखें?",
+          "सूखे पत्ते जलाने की जगह क्या आसान विकल्प हैं?",
+          "बुजुर्गों और बच्चों के लिए बाहर जाने का सही समय क्या है?"
+        ]
+      }
+    };
+
+    const CITY_LIST = [
+      { key: "Hyderabad, India", en: "Hyderabad", hi: "हैदराबाद" },
+      { key: "New Delhi, India", en: "New Delhi", hi: "नई दिल्ली" },
+      { key: "Mumbai, India", en: "Mumbai", hi: "मुंबई" },
+      { key: "Lahore, Pakistan", en: "Lahore", hi: "लाहौर" },
+      { key: "Beijing, China", en: "Beijing", hi: "बीजिंग" }
+    ];
+
+    /* Default steps. `mechanism` drives the Today's Impact dose maths in
+       computeImpact(); `co2Saved` is a per-step planning estimate (kg),
+       labelled "(est.)" in the UI. hiRoman is the spoken fallback used
+       when the phone has no Hindi voice (see the voice engine below). */
+    const DEFAULT_ACTIONS = [
+      {
+        id: "act-1",
+        category: "routine",
+        mechanism: "window",
+        co2Saved: 0.4,
+        checked: true,
+        en: {
+          tag: "Daily Routine",
+          title: "Walk Between 1 PM and 4 PM Instead of Early Morning",
+          description: "Afternoon sunlight warms the air and lifts trapped exhaust fumes above breathing height.",
+          healthImpact: "Cuts inhaled PM2.5 smoke by 52%.",
+          envImpact: "Avoids peak rush-hour traffic exposure."
+        },
+        hi: {
+          tag: "दिनचर्या",
+          title: "सुबह की जगह दोपहर 1 से 4 बजे के बीच टहलें",
+          description: "दोपहर की धूप से हवा गर्म होती है और ज़हरीला धुआं ऊपर उठ जाता है।",
+          healthImpact: "फेफड़ों में जाने वाला धुआं 52% तक कम होता है।",
+          envImpact: "सुबह के ट्रैफिक धुएं से बचाव होता है।"
+        },
+        hiRoman: {
+          title: "Subah ki jagah dopahar 1 se 4 baje ke beech tahlein",
+          description: "Dopahar ki dhoop se hawa garam hoti hai aur zehreela dhuaan upar uth jata hai.",
+          healthImpact: "Fefdon mein jaane wala dhuaan 52% tak kam hota hai."
+        }
+      },
+      {
+        id: "act-2",
+        category: "indoor",
+        mechanism: "indoor",
+        co2Saved: 0.3,
+        checked: true,
+        en: {
+          tag: "Home Hack",
+          title: "Wet-Mop Floors & Place Damp Towels at Door Gaps",
+          description: "Dry brooms kick toxic dust back into the air. Wet mopping traps soot without electricity.",
+          healthImpact: "Reduces indoor floating dust by 40%.",
+          envImpact: "Zero electricity used."
+        },
+        hi: {
+          tag: "घर के उपाय",
+          title: "सूखी झाड़ू की जगह गीला पोंछा लगाएं और दरवाजे पर गीला तौलिया रखें",
+          description: "सूखी झाड़ू से धूल फिर हवा में उड़ती है। गीले पोंछे से धुएं के कण चिपक कर साफ हो जाते हैं।",
+          healthImpact: "घर के अंदर उड़ने वाली धूल 40% कम होती है।",
+          envImpact: "बिजली की कोई खपत नहीं होती।"
+        },
+        hiRoman: {
+          title: "Sookhi jhaadu ki jagah geela pochha lagayein aur darwaze par geela tauliya rakhein",
+          description: "Sookhi jhaadu se dhool phir hawa mein udti hai. Geele pochhe se dhuein ke kan chipak kar saaf ho jate hain.",
+          healthImpact: "Ghar ke andar udne wali dhool 40% kam hoti hai."
+        }
+      },
+      {
+        id: "act-3",
+        category: "indoor",
+        mechanism: "filter",
+        co2Saved: 0.5,
+        checked: false,
+        en: {
+          tag: "Home Hack",
+          title: "Attach a MERV-13 Filter to a Room Fan",
+          description: "Tape a pleated filter behind a standard box fan and run it 1 hour before bedtime.",
+          healthImpact: "Removes up to 75% of fine smoke particles.",
+          envImpact: "Uses 80% less power than heavy appliances."
+        },
+        hi: {
+          tag: "घर के उपाय",
+          title: "साधारण पंखे के पीछे MERV-13 फ़िल्टर लगाएं",
+          description: "सोने से 1 घंटा पहले कमरे के पंखे पर फ़िल्टर लगाकर चलाने से हवा साफ हो जाती है।",
+          healthImpact: "75% तक बारीक धुएं के कण साफ करता है।",
+          envImpact: "महंगे उपकरणों से 80% कम बिजली खर्च होती है।"
+        },
+        hiRoman: {
+          title: "Saadharan pankhe ke peeche MERV-13 filter lagayein",
+          description: "Sone se 1 ghanta pehle kamre ke pankhe par filter lagakar chalane se hawa saaf ho jati hai.",
+          healthImpact: "75% tak bareek dhuein ke kan saaf karta hai."
+        }
+      },
+      {
+        id: "act-4",
+        category: "routine",
+        mechanism: "mask",
+        co2Saved: 1.4,
+        checked: true,
+        en: {
+          tag: "Daily Routine",
+          title: "Use Metro or Walk for Short Trips Under 4 km",
+          description: "Cold vehicle engines release 3× more soot in the first few kilometers.",
+          healthImpact: "Keeps neighborhood and school streets cleaner.",
+          envImpact: "Prevents 1.4 kg CO₂ per trip."
+        },
+        hi: {
+          tag: "दिनचर्या",
+          title: "4 किमी से कम दूरी के लिए मेट्रो या पैदल चलें",
+          description: "ठंडा इंजन शुरू के कुछ किलोमीटर में 3 गुना ज़्यादा काला धुआं छोड़ता है।",
+          healthImpact: "मोहल्ले और स्कूल के पास की हवा साफ रहती है।",
+          envImpact: "प्रति यात्रा 1.4 किग्रा CO₂ धुआं रुकता है।"
+        },
+        hiRoman: {
+          title: "4 km se kam doori ke liye metro ya paidal chalein",
+          description: "Thanda engine shuru ke kuchh kilometer mein 3 guna zyada kala dhuaan chhodta hai.",
+          healthImpact: "Mohalle aur school ke paas ki hawa saaf rehti hai."
+        }
+      },
+      {
+        id: "act-5",
+        category: "community",
+        mechanism: "community",
+        co2Saved: 3.2,
+        checked: false,
+        en: {
+          tag: "Community",
+          title: "Compost Dry Winter Leaves Instead of Burning",
+          description: "One burning leaf pile creates as much fine smoke as 200 idling cars.",
+          healthImpact: "Prevents night-time asthma triggers nearby.",
+          envImpact: "Stops 3.2 kg of toxic smoke per pile."
+        },
+        hi: {
+          tag: "मोहल्ला",
+          title: "सूखे पत्ते जलाने की जगह खाद (कम्पोस्ट) बनाएं",
+          description: "पत्तों का एक ढेर जलाने से 200 गाड़ियों जितना ज़हरीला धुआं निकलता है।",
+          healthImpact: "रात में बुजुर्गों को सांस की तकलीफ से बचाता है।",
+          envImpact: "3.2 किग्रा ज़हरीला धुआं बनने से रुकता है।"
+        },
+        hiRoman: {
+          title: "Sookhe patte jalane ki jagah khaad (compost) banayein",
+          description: "Patton ka ek dher jalane se 200 gaadiyon jitna zehreela dhuaan nikalta hai.",
+          healthImpact: "Raat mein buzurgon ko saans ki takleef se bachata hai."
+        }
+      },
+      {
+        id: "act-6",
+        category: "indoor",
+        mechanism: "kitchen",
+        co2Saved: 0.6,
+        checked: false,
+        en: {
+          tag: "Home Hack",
+          title: "Cover Cooking Pans & Run Kitchen Exhaust",
+          description: "High-heat frying spikes indoor smoke. Keep lids on and vent for 10 minutes.",
+          healthImpact: "Stops kitchen fumes from spreading indoors.",
+          envImpact: "Saves 15% cooking fuel."
+        },
+        hi: {
+          tag: "घर के उपाय",
+          title: "खाना बनाते समय बर्तन ढकें और एग्जॉस्ट चलाएं",
+          description: "तेज़ आंच पर तड़का लगाने से घर में धुआं बढ़ता है। ढक्कन लगाने से धुआं कम होता है।",
+          healthImpact: "रसोई का धुआं पूरे घर में नहीं फैलता।",
+          envImpact: "15% रसोई गैस की बचत होती है।"
+        },
+        hiRoman: {
+          title: "Khana banate samay bartan dhakein aur exhaust chalayein",
+          description: "Tez aanch par tadka lagane se ghar mein dhuaan badhta hai. Dhakkan lagane se dhuaan kam hota hai.",
+          healthImpact: "Rasoi ka dhuaan pure ghar mein nahi failta."
+        }
+      }
+    ];
+
+    /* Senior Tap & Listen cards. Every answer is a function of ONE view
+       model (seniorVM()) built from appState.air — the same computed
+       state the hero shows — so a card can never quote a different AQI
+       than the Daily Plan tab. hiRoman mirrors hi for phones without a
+       Hindi voice. */
+    const SENIOR_VOICE_CARDS = [
+      {
+        en: {
+          title: "Can I go for a walk today?",
+          getAnswer: (vm) => vm.band >= 3
+            ? `In ${vm.city}, the air quality index is ${vm.aqi} — ${vm.catEn.toLowerCase()}. Please skip outdoor walks today. Even the safest time, ${vm.windowEn}, is only for essential trips, with a well-fitted N95 mask.`
+            : `In ${vm.city}, air quality is ${vm.aqi}. Please skip early morning walks. The safest time for a gentle walk is ${vm.windowEn}, when sunlight lifts the smog.`
+        },
+        hi: {
+          title: "क्या मैं आज टहलने जा सकता हूँ?",
+          getAnswer: (vm) => vm.band >= 3
+            ? `${vm.city} में आज हवा का स्तर ${vm.aqi} है — ${vm.catHi}। कृपया आज बाहर टहलने न जाएं। सबसे सुरक्षित समय ${vm.windowHi} भी केवल ज़रूरी काम के लिए है, वह भी अच्छी फिटिंग वाले N95 मास्क के साथ।`
+            : `${vm.city} में आज हवा का स्तर ${vm.aqi} है। कृपया सुबह जल्दी टहलने न जाएं। टहलने का सबसे सुरक्षित समय ${vm.windowHi} है, जब धूप से धुआं कम हो जाता है।`
+        },
+        hiRoman: {
+          getAnswer: (vm) => vm.band >= 3
+            ? `${vm.city} mein aaj hawa ka star ${vm.aqi} hai. Kripya aaj bahar tahalne na jayein. Sabse surakshit samay ${vm.windowRoman} bhi keval zaroori kaam ke liye hai, woh bhi achhi fitting wale N95 mask ke saath.`
+            : `${vm.city} mein aaj hawa ka star ${vm.aqi} hai. Kripya subah jaldi tahalne na jayein. Tahalne ka sabse surakshit samay ${vm.windowRoman} hai, jab dhoop se dhuaan kam ho jata hai.`
+        }
+      },
+      {
+        en: {
+          title: "Should I open my windows?",
+          getAnswer: (vm) => `Keep windows closed in the morning and night. Open them for just 15 minutes around ${vm.windowEn} for fresh air, then close them again.`
+        },
+        hi: {
+          title: "क्या मुझे खिड़कियां खोलनी चाहिए?",
+          getAnswer: (vm) => `सुबह और रात में खिड़कियां बंद रखें। ताज़ी हवा के लिए केवल ${vm.windowHi} के आसपास 15 मिनट खिड़की खोलें और फिर बंद कर दें।`
+        },
+        hiRoman: {
+          getAnswer: (vm) => `Subah aur raat mein khidkiyan band rakhein. Taazi hawa ke liye keval ${vm.windowRoman} ke aaspaas 15 minute khidki kholein aur phir band kar dein.`
+        }
+      },
+      {
+        en: {
+          title: "Which mask should I wear?",
+          getAnswer: (vm) => vm.band <= 1
+            ? `At today's AQI of ${vm.aqi} in ${vm.city}, a mask is optional for short trips. For longer outings a snug N95 or KN95 is still the safest choice — cloth masks do not block fine smog.`
+            : `Cloth masks do not block fine winter smog. Please wear a snug N95 or KN95 mask whenever you step outside.`
+        },
+        hi: {
+          title: "मुझे कौन सा मास्क पहनना चाहिए?",
+          getAnswer: (vm) => vm.band <= 1
+            ? `${vm.city} में आज AQI ${vm.aqi} है — छोटी यात्रा के लिए मास्क वैकल्पिक है। लंबी यात्रा के लिए अच्छी फिटिंग वाला N95 या KN95 ही सबसे सुरक्षित है, क्योंकि कपड़े का मास्क बारीक स्मॉग नहीं रोक पाता।`
+            : `कपड़े का मास्क बारीक स्मॉग को नहीं रोक पाता। बाहर जाते समय हमेशा अच्छी फिटिंग वाला N95 या KN95 मास्क ही पहनें।`
+        },
+        hiRoman: {
+          getAnswer: (vm) => vm.band <= 1
+            ? `${vm.city} mein aaj AQI ${vm.aqi} hai — chhoti yatra ke liye mask vaikalpik hai. Lambi yatra ke liye achhi fitting wala N95 ya KN95 hi sabse surakshit hai.`
+            : `Kapde ka mask bareek smog ko nahi rok pata. Bahar jate samay hamesha achhi fitting wala N95 ya KN95 mask hi pehnein.`
+        }
+      },
+      {
+        en: {
+          title: "How to keep my room air clean?",
+          getAnswer: () => `Use a wet mop instead of a dry broom so dust stays down, and place a damp towel along the bottom gap of your door.`
+        },
+        hi: {
+          title: "कमरे की हवा साफ कैसे रखें?",
+          getAnswer: () => `सूखी झाड़ू की जगह गीला पोंछा लगवाएं ताकि धूल न उड़े, और दरवाजे के निचले हिस्से में एक गीला तौलिया रख दें।`
+        },
+        hiRoman: {
+          getAnswer: () => `Sookhi jhaadu ki jagah geela pochha lagwayein taaki dhool na ude, aur darwaze ke nichle hisse mein ek geela tauliya rakh dein.`
+        }
+      },
+      {
+        en: {
+          title: "What helps my throat and breathing?",
+          getAnswer: () => `Sip warm water, ginger tea, or turmeric milk during the day, and eat vitamin C fruits like oranges and amla.`
+        },
+        hi: {
+          title: "गले और सांस के आराम के लिए क्या लें?",
+          getAnswer: () => `दिन भर गुनगुना पानी, अदरक की चाय या हल्दी वाला दूध पिएं। संतरा और आंवला जैसे फल खाएं।`
+        },
+        hiRoman: {
+          getAnswer: () => `Din bhar gunguna paani, adrak ki chai ya haldi wala doodh piyein. Santra aur amla jaise phal khayein.`
+        }
+      },
+      {
+        en: {
+          title: "When should I call my family?",
+          getAnswer: () => `If you feel chest tightness, wheezing, or shortness of breath while resting, sit upright, use your inhaler if prescribed, and tell your family right away.`
+        },
+        hi: {
+          title: "परिवार या डॉक्टर को कब बुलाएं?",
+          getAnswer: () => `यदि आराम करते समय सीने में जकड़न, घरघराहट या सांस फूलने लगे, तो सीधे बैठें, अपनी दवा लें और तुरंत परिवार को बताएं।`
+        },
+        hiRoman: {
+          getAnswer: () => `Yadi aaram karte samay seene mein jakdan, ghargharahat ya saans phoolne lage, to seedhe baithein, apni dawa lein aur turant parivaar ko batayein.`
+        }
+      }
+    ];
+
+    let appState = {
+      lang: "en",
+      currentCity: "Hyderabad, India",
+      /* THE single source of truth (FIX 2): one computed state per loaded
+         city — { place, now, trail, subs, naqi, dominant, usAqi,
+         bestWindow, updated, source } — built once by computeAirState()
+         and read by every view. Null until the first live load lands. */
+      air: null,
+      profiles: {
+        seniors: true,
+        kids: false,
+        asthma: false,
+        noPurifier: true,
+        commuter: false
+      },
+      actions: JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
+      activeFilter: "all",
+      activeTab: "overview",
+      speechRate: 1.0,
+      isSpeaking: false
+    };
+
+    // =========================================================================
+    // 2. INITIALIZATION & LANGUAGE SWITCHING
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      applyLanguageUI();
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.getVoices();
+      }
+      // FIX 1: the first paint is placeholders only — real numbers arrive
+      // from the live feed for the default city.
+      loadCity("Hyderabad", "Hyderabad, India", "Hyderabad");
+    });
+
+    function setLanguage(lang) {
+      if (appState.lang === lang) return;
+      stopAudio();
+      appState.lang = lang;
+
+      // Update EN / हिंदी pill styling
+      document.getElementById("lang-en").className = lang === "en"
+        ? "px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm"
+        : "px-2.5 py-1 rounded-full text-[12px] font-semibold text-apple-secondary dark:text-apple-darkSecondary";
+
+      document.getElementById("lang-hi").className = lang === "hi"
+        ? "px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm"
+        : "px-2.5 py-1 rounded-full text-[12px] font-semibold text-apple-secondary dark:text-apple-darkSecondary";
+
+      applyLanguageUI();
+    }
+
+    function applyLanguageUI() {
+      const t = UI_STRINGS[appState.lang];
+
+      // Update static data-i18n elements
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (t[key]) el.textContent = t[key];
+      });
+
+      document.getElementById("custom-city-input").placeholder = t.searchCityPlaceholder;
+      document.getElementById("chat-input").placeholder = t.chatPlaceholder;
+
+      renderCityChips();
+      renderProfileChips();
+      renderFilterChips();
+      renderHero();
+      renderActions();
+      renderImpactTracker();
+      renderSeniorCards();
+      renderChatIntroAndPrompts();
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle("dark");
+      document.getElementById("icon-moon").classList.toggle("hidden", isDark);
+      document.getElementById("icon-sun").classList.toggle("hidden", !isDark);
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.remove("hidden");
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 3. TAB NAVIGATION
+    // =========================================================================
+    function switchTab(tabName) {
+      appState.activeTab = tabName;
+
+      ["overview", "voice", "ask"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add("hidden");
+      });
+      document.getElementById(`view-${tabName}`).classList.remove("hidden");
+
+      ["overview", "voice", "ask"].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        const mobBtn = document.getElementById(`mob-nav-${t}`);
+        if (t === tabName) {
+          btn.className = "tab-btn px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm";
+          mobBtn.className = "py-1.5 rounded-full text-[12px] font-medium bg-white dark:bg-apple-darkCard text-apple-ink dark:text-white shadow-sm";
+        } else {
+          btn.className = "tab-btn px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors text-apple-secondary dark:text-apple-darkSecondary hover:text-apple-ink dark:hover:text-white";
+          mobBtn.className = "py-1.5 rounded-full text-[12px] font-medium text-apple-secondary dark:text-apple-darkSecondary";
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // =========================================================================
+    // 4. LIVE DATA LAYER (FIX 1) — Open-Meteo geocoding + CAMS air quality.
+    //    Keyless. The CPCB NAQI is computed from the feed's pollutant
+    //    values by ClearAirLogic (trailing 24-h means; 8-h for O3/CO),
+    //    exactly as the tested ClearAir build does. No number on this
+    //    page comes from an AI model or a stored preset.
+    // =========================================================================
+    function meanOf(a) {
+      a = a.filter(x => x != null && !isNaN(x));
+      return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+    }
+
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }
+
+    async function geocodeCity(q) {
+      const j = await fetchJson("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(q) + "&count=1&language=en&format=json");
+      if (j.results && j.results.length) {
+        const g = j.results[0];
+        return { lat: g.latitude, lon: g.longitude, name: g.name, country: g.country || "" };
+      }
+      return null;
+    }
+
+    function computeAirState(place, a) {
+      const times = a.hourly.time;
+      let nowIdx = times.length - 1;
+      const cur = new Date(a.current.time).getTime();
+      /* Hourly times are ascending: the current hour is the last entry at
+         or before the feed's current time. */
+      for (let i = 0; i < times.length; i++) {
+        if (new Date(times[i]).getTime() <= cur) nowIdx = i; else break;
+      }
+      const trail = (key, h) => {
+        const s = [];
+        for (let j = Math.max(0, nowIdx - h + 1); j <= nowIdx; j++) s.push(a.hourly[key][j]);
+        return meanOf(s);
+      };
+      const trailVals = {
+        pm25: trail("pm2_5", 24),
+        pm10: trail("pm10", 24),
+        no2: trail("nitrogen_dioxide", 24),
+        so2: trail("sulphur_dioxide", 24),
+        o3: trail("ozone", 8),
+        co: trail("carbon_monoxide", 8) / 1000 // feed is µg/m³; CPCB table is mg/m³
+      };
+      const nr = ClearAirLogic.naqiFromMeans(trailVals);
+      const dominant = Object.keys(nr.subs).reduce((m, k) => nr.subs[k] > nr.subs[m] ? k : m, "pm25");
+      const hours = [];
+      for (let j = nowIdx; j < Math.min(times.length, nowIdx + 24); j++) {
+        if (a.hourly.pm2_5[j] != null) hours.push({ t: times[j], pm: a.hourly.pm2_5[j] });
+      }
+      return {
+        place: place,
+        now: {
+          pm25: a.current.pm2_5, pm10: a.current.pm10,
+          no2: a.current.nitrogen_dioxide, o3: a.current.ozone,
+          so2: a.current.sulphur_dioxide, co: a.current.carbon_monoxide
+        },
+        trail: trailVals,
+        subs: nr.subs,
+        naqi: nr.naqi,
+        dominant: dominant,
+        usAqi: a.current.us_aqi || 0,
+        bestWindow: ClearAirLogic.bestWindowFromHours(hours),
+        updated: new Date(a.current.time).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }),
+        source: "Open-Meteo · Copernicus CAMS"
+      };
+    }
+
+    async function loadCity(query, keyHint, labelHint) {
+      const btn = document.getElementById("refresh-city-btn");
+      btn.disabled = true;
+      btn.textContent = "...";
+      try {
+        const place = await geocodeCity(query);
+        if (!place) {
+          showToast(UI_STRINGS[appState.lang].notFound);
+          return;
+        }
+        if (labelHint) place.name = labelHint;
+        const url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + place.lat + "&longitude=" + place.lon +
+          "&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi" +
+          "&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi" +
+          "&forecast_days=2&past_days=2&timezone=auto";
+        /* Air quality is retried once before any error is shown (weather
+           in attempt3's build taught us: transient feed failures are
+           common, invented fallback numbers are not an option). */
+        let a;
+        try {
+          a = await fetchJson(url);
+          if (!a || !a.hourly || !a.current || a.error) throw new Error("Bad AQ payload");
+        } catch (e1) {
+          await new Promise(r => setTimeout(r, 1200));
+          a = await fetchJson(url);
+          if (!a || !a.hourly || !a.current || a.error) throw new Error("Bad AQ payload");
+        }
+        appState.air = computeAirState(place, a);
+        const chip = CITY_LIST.find(c => c.key === keyHint) || CITY_LIST.find(c => c.en === place.name);
+        appState.currentCity = chip ? chip.key : place.name;
+        renderCityChips();
+        applyLanguageUI();
+      } catch (err) {
+        if (appState.air) {
+          // A refresh failed but a real earlier reading is on screen — say
+          // so and leave that reading untouched.
+          showToast(UI_STRINGS[appState.lang].refreshFailed);
+        } else {
+          renderLoadError();
+          showToast(UI_STRINGS[appState.lang].loadErrorShort);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = UI_STRINGS[appState.lang].btnGo;
+      }
+    }
+
+    function renderLoadError() {
+      const t = UI_STRINGS[appState.lang];
+      document.getElementById("current-city-title").textContent = "—";
+      document.getElementById("aqi-number").textContent = "–";
+      const badge = document.getElementById("aqi-badge");
+      badge.textContent = t.badgeUnavailable;
+      badge.className = "px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-redBg text-apple-red";
+      document.getElementById("pm25-val").innerHTML = "–";
+      document.getElementById("pm25-note").textContent = "—";
+      document.getElementById("pm10-val").innerHTML = "–";
+      document.getElementById("pm10-note").textContent = "—";
+      document.getElementById("safe-window-val").textContent = "—";
+      document.getElementById("hero-summary-text").textContent = t.loadError;
+      document.getElementById("data-source-line").textContent = "";
+      document.getElementById("senior-aqi-pill").textContent = "AQI –";
+    }
+
+    // =========================================================================
+    // 5. DERIVED TEXT — every sentence is built from appState.air by fixed
+    //    templates (never by an AI, never stored per city), in English,
+    //    Hindi, and Roman Hinglish (the spoken fallback).
+    // =========================================================================
+    function bandOf(a) { return a <= 50 ? 0 : a <= 100 ? 1 : a <= 200 ? 2 : a <= 300 ? 3 : a <= 400 ? 4 : 5; }
+
+    function fmtWindow(lang) {
+      const air = appState.air;
+      if (!air || !air.bestWindow) return "—";
+      const s = new Date(air.bestWindow.from);
+      const e = new Date(air.bestWindow.to);
+      e.setHours(e.getHours() + 1); // the window covers both hourly slots
+      const h12 = (d) => { let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return { h, ap }; };
+      const a = h12(s), b = h12(e);
+      const daypart = (h, hi) => h < 5 ? (hi ? "रात" : "raat") : h < 12 ? (hi ? "सुबह" : "subah") : h < 17 ? (hi ? "दोपहर" : "dopahar") : h < 21 ? (hi ? "शाम" : "shaam") : (hi ? "रात" : "raat");
+      if (lang === "hi") return `${daypart(s.getHours(), true)} ${a.h}–${b.h} बजे`;
+      if (lang === "roman") return `${daypart(s.getHours(), false)} ${a.h}–${b.h} baje`;
+      return a.ap === b.ap ? `${a.h} – ${b.h} ${a.ap}` : `${a.h} ${a.ap} – ${b.h} ${b.ap}`;
+    }
+
+    function buildSummary(lang) {
+      const air = appState.air;
+      const t = UI_STRINGS[lang];
+      if (!air) return t.loadingData;
+      const band = bandOf(air.naqi);
+      const dom = t.domNames[air.dominant];
+      const win = fmtWindow(lang);
+      const city = air.place.name;
+      const sensitive = appState.profiles.asthma || appState.profiles.seniors || appState.profiles.kids;
+      if (lang === "hi") {
+        const s1 = [
+          `आज ${city} की हवा साफ़ है। ${dom} का स्तर कम है।`,
+          `आज ${city} की हवा ठीक है, मुख्य प्रदूषक ${dom} है।`,
+          `आज ${city} की हवा मध्यम है — ${dom} मुख्य चिंता है।`,
+          `आज ${city} की हवा खराब है, मुख्य कारण ${dom} है।`,
+          `आज ${city} की हवा बहुत खराब है, मुख्य कारण ${dom} है।`,
+          `आज ${city} की हवा गंभीर स्तर पर है, मुख्य कारण ${dom} है। जितना हो सके घर के अंदर रहें।`
+        ][band];
+        let s2;
+        if (band <= 1) s2 = `बाहर के सामान्य काम आराम से कर सकते हैं। सबसे साफ़ समय ${win} है।`;
+        else if (band === 2) s2 = `बाहर जाने का सबसे सुरक्षित समय ${win} है; बाकी समय लंबी कसरत बाहर न करें।`;
+        else s2 = `बाहर जाने का सबसे सुरक्षित समय ${win} है; बाकी समय खिड़कियां बंद रखें और गीला पोंछा लगाएं।`;
+        if (sensitive && band >= 3) s2 += ` परिवार के संवेदनशील सदस्यों को बाहर कम ही निकालें।`;
+        return s1 + " " + s2;
+      }
+      const s1 = [
+        `Air is clean in ${city} today. ${dom} levels are low.`,
+        `Air is acceptable in ${city} today, with ${dom} the main pollutant.`,
+        `Air is moderate in ${city} today — ${dom} is the main concern.`,
+        `Air is poor in ${city} today, mainly ${dom}.`,
+        `Air is very poor in ${city} today, mainly ${dom}.`,
+        `Air is at a severe level in ${city} today, mainly ${dom}. Stay indoors as much as possible.`
+      ][band];
+      let s2;
+      if (band <= 1) s2 = `Normal outdoor plans are fine. The cleanest slot is ${win}.`;
+      else if (band === 2) s2 = `The safest time outdoors is ${win}; avoid long outdoor workouts at other times.`;
+      else s2 = `The safest time outdoors is ${win}; keep windows closed at other times and wet-mop floors.`;
+      if (sensitive && band >= 3) s2 += ` Keep sensitive family members indoors as much as possible.`;
+      return s1 + " " + s2;
+    }
+
+    function buildSummaryRoman() {
+      const air = appState.air;
+      if (!air) return "";
+      const band = bandOf(air.naqi);
+      const bandWord = ["bahut achhi", "achhi", "theek-thaak", "kharab", "bahut kharab", "khatarnak"][band];
+      const act = [
+        "Aaj bahar ke saare kaam aaram se kar sakte hain.",
+        "Bahar ja sakte hain; naazuk sehat wale dhyaan rakhein.",
+        "Lambi daud ya bhaari kasrat bahar na karein; chhote kaam chalenge.",
+        "Bahar kam jayein; zaroori ho to N95 mask pehnein. Bachche aur buzurg andar rahein.",
+        "Bahar bilkul kam jayein; N95 mask zaroor pehnein. Bachche, buzurg aur dama ke mareez andar hi rahein.",
+        "Ghar ke andar hi rahein. Bahar jaana bahut zaroori ho tabhi N95 mask pehenkar jayein."
+      ][band];
+      return `${air.place.name} mein aaj hawa ${bandWord} hai. Hawa ka number (AQI) ${air.naqi} hai. ${act} Sabse surakshit samay ${fmtWindow("roman")} hai.`;
+    }
+
+    /* Household risk, genuinely driven by the ported logic: the most
+       sensitive selected member's PERSONAS factor (elderly 1.4, children
+       1.5, asthma 1.8), the commute activity factor when Commuter is on,
+       through ClearAirLogic.riskScore. Used by the Ask AI grounding, the
+       built-in answers and the plan prompt. */
+    function householdRisk() {
+      const air = appState.air;
+      if (!air) return null;
+      const L = ClearAirLogic;
+      const personaFactor = { seniors: 1.4, kids: 1.5, asthma: 1.8 };
+      let hf = 1.0;
+      Object.keys(personaFactor).forEach(k => { if (appState.profiles[k]) hf = Math.max(hf, personaFactor[k]); });
+      const act = appState.profiles.commuter ? L.ACTF.commute : L.ACTF.walk;
+      const dur = appState.profiles.commuter ? 45 : 60;
+      const score = L.riskScore(air.naqi, hf, act.f, dur, false);
+      return { score: score, band: L.riskBand(score) };
+    }
+
+    function riskVerdictEn(band) {
+      return ["Fine to go — normal precautions", "Okay with care", "Cut it short — or mask up", "Skip it outdoors today"][band];
+    }
+
+    function seniorVM() {
+      const air = appState.air;
+      const band = air ? bandOf(air.naqi) : 2;
+      return {
+        city: air ? air.place.name : "",
+        aqi: air ? air.naqi : 0,
+        band: band,
+        catEn: UI_STRINGS.en.cats[band],
+        catHi: UI_STRINGS.hi.cats[band],
+        windowEn: fmtWindow("en"),
+        windowHi: fmtWindow("hi"),
+        windowRoman: fmtWindow("roman")
+      };
+    }
+
+    function guardAir() {
+      if (!appState.air) {
+        showToast(UI_STRINGS[appState.lang].dataLoadingToast);
+        return false;
+      }
+      return true;
+    }
+
+    // =========================================================================
+    // 6. HERO RENDERING — reads only appState.air
+    // =========================================================================
+    function renderHero() {
+      const t = UI_STRINGS[appState.lang];
+      const air = appState.air;
+      const badge = document.getElementById("aqi-badge");
+      const dot = document.getElementById("live-dot");
+      const seniorPill = document.getElementById("senior-aqi-pill");
+
+      if (!air) {
+        document.getElementById("aqi-number").textContent = "–";
+        badge.textContent = t.loadingShort;
+        badge.className = "px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-subtle dark:bg-apple-darkSubtle text-apple-secondary dark:text-apple-darkSecondary";
+        seniorPill.textContent = "AQI –";
+        document.getElementById("pm25-val").innerHTML = "–";
+        document.getElementById("pm25-note").textContent = "—";
+        document.getElementById("pm10-val").innerHTML = "–";
+        document.getElementById("pm10-note").textContent = "—";
+        document.getElementById("safe-window-val").textContent = "—";
+        document.getElementById("hero-summary-text").textContent = t.loadingData;
+        document.getElementById("data-source-line").textContent = "";
+        return;
+      }
+
+      const band = bandOf(air.naqi);
+      document.getElementById("current-city-title").textContent = air.place.name;
+      document.getElementById("aqi-number").textContent = air.naqi;
+      document.getElementById("pm25-val").innerHTML = `${Math.round(air.now.pm25)} <span class="text-[11px] font-normal text-apple-secondary">µg/m³</span>`;
+      const pm25Note = document.getElementById("pm25-note");
+      pm25Note.textContent = appState.lang === "hi"
+        ? `सीमा से ${(air.now.pm25 / 15).toFixed(1)} गुना अधिक`
+        : `${(air.now.pm25 / 15).toFixed(1)}× safe limit`;
+      pm25Note.className = "mt-0.5 text-[11px] font-medium " + (band >= 4 ? "text-apple-red" : band >= 2 ? "text-apple-amber" : "text-apple-green");
+      document.getElementById("pm10-val").innerHTML = `${Math.round(air.now.pm10)} <span class="text-[11px] font-normal text-apple-secondary">µg/m³</span>`;
+      document.getElementById("pm10-note").textContent = appState.lang === "hi"
+        ? `सीमा से ${(air.now.pm10 / 45).toFixed(1)} गुना अधिक`
+        : `${(air.now.pm10 / 45).toFixed(1)}× safe limit`;
+      document.getElementById("safe-window-val").textContent = fmtWindow(appState.lang);
+      document.getElementById("hero-summary-text").textContent = buildSummary(appState.lang);
+      document.getElementById("data-source-line").textContent = t.srcPrefix + air.updated;
+
+      badge.textContent = t.cats[band];
+      seniorPill.textContent = `AQI ${air.naqi}`;
+      document.getElementById("senior-city-label").textContent = air.place.name;
+
+      if (band <= 1) {
+        badge.className = "px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-greenBg text-apple-green";
+        seniorPill.className = "px-3 py-1 rounded-full text-[14px] font-bold bg-apple-greenBg text-apple-green";
+        dot.className = "w-2 h-2 rounded-full bg-apple-green";
+      } else if (band <= 3) {
+        badge.className = "px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-amberBg text-apple-amber";
+        seniorPill.className = "px-3 py-1 rounded-full text-[14px] font-bold bg-apple-amberBg text-apple-amber";
+        dot.className = "w-2 h-2 rounded-full bg-apple-amber";
+      } else {
+        badge.className = "px-3 py-1 rounded-full text-[13px] font-semibold bg-apple-redBg text-apple-red";
+        seniorPill.className = "px-3 py-1 rounded-full text-[14px] font-bold bg-apple-redBg text-apple-red";
+        dot.className = "w-2 h-2 rounded-full bg-apple-red";
+      }
+    }
+
+    // =========================================================================
+    // 7. CITY SELECTION — preset chips and search both go through the
+    //    same live loader; a preset is just a saved search now.
+    // =========================================================================
+    function renderCityChips() {
+      const container = document.getElementById("city-chips-container");
+      container.innerHTML = CITY_LIST.map(c => {
+        const active = appState.currentCity === c.key;
+        const label = appState.lang === "hi" ? c.hi : c.en;
+        return `
+          <button onclick="selectCity('${c.key}')" class="tap-scale px-3.5 py-1.5 rounded-full text-[13px] font-medium ${active ? 'bg-apple-ink text-white dark:bg-white dark:text-apple-ink' : 'bg-apple-subtle dark:bg-apple-darkSubtle text-apple-ink dark:text-apple-darkInk'}">
+            ${label}
+          </button>
+        `;
+      }).join("");
+    }
+
+    async function selectCity(cityName) {
+      stopAudio();
+      appState.currentCity = cityName;
+      renderCityChips();
+      const chip = CITY_LIST.find(c => c.key === cityName);
+      await loadCity(chip ? chip.en : cityName, cityName, chip ? chip.en : null);
+    }
+
+    async function handleCustomCitySubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById("custom-city-input");
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = "";
+      stopAudio();
+      await loadCity(val);
+    }
+
+    // =========================================================================
+    // 8. HOUSEHOLD CHIPS, IMPACT METER & ACTION CARDS
+    // =========================================================================
+    function renderProfileChips() {
+      const t = UI_STRINGS[appState.lang];
+      const items = [
+        { key: "seniors", label: t.profSeniors },
+        { key: "kids", label: t.profKids },
+        { key: "asthma", label: t.profAsthma },
+        { key: "noPurifier", label: t.profNoPurifier },
+        { key: "commuter", label: t.profCommuter }
+      ];
+
+      document.getElementById("profile-chips-container").innerHTML = items.map(item => {
+        const active = appState.profiles[item.key];
+        return `
+          <button onclick="toggleProfile('${item.key}')" class="tap-scale px-3 py-1.5 rounded-full text-[13px] font-medium ${active ? 'bg-apple-ink text-white dark:bg-white dark:text-apple-ink' : 'bg-apple-subtle dark:bg-apple-darkSubtle text-apple-ink dark:text-apple-darkInk'}">
+            ${item.label}
+          </button>
+        `;
+      }).join("");
+    }
+
+    function toggleProfile(key) {
+      appState.profiles[key] = !appState.profiles[key];
+      renderProfileChips();
+      renderHero();          // the summary's advice follows the household
+      renderImpactTracker(); // and so do the dose maths (indoor factor, risk)
+    }
+
+    function renderFilterChips() {
+      const t = UI_STRINGS[appState.lang];
+      const filters = [
+        { key: "all", label: t.filterAll },
+        { key: "routine", label: t.filterRoutine },
+        { key: "indoor", label: t.filterIndoor },
+        { key: "community", label: t.filterCommunity }
+      ];
+
+      document.getElementById("filter-chips-container").innerHTML = filters.map(f => {
+        const active = appState.activeFilter === f.key;
+        return `
+          <button onclick="filterActions('${f.key}')" class="px-3 py-1.5 rounded-full text-[12px] font-medium ${active ? 'bg-apple-ink text-white dark:bg-white dark:text-apple-ink' : 'text-apple-secondary dark:text-apple-darkSecondary'}">
+            ${f.label}
+          </button>
+        `;
+      }).join("");
+    }
+
+    function filterActions(category) {
+      appState.activeFilter = category;
+      renderFilterChips();
+      renderActions();
+    }
+
+    function toggleActionCheck(id) {
+      const item = appState.actions.find(a => a.id === id);
+      if (item) {
+        item.checked = !item.checked;
+        renderActions();
+        renderImpactTracker();
+      }
+    }
+
+    /* Today's Impact (FIX 2): computed from the LIVE PM2.5 with the
+       exposure-dose formulas in ClearAirLogic — no template sums.
+       Scenarios (breathing rates match the tested build's simulator:
+       walking 0.9 m³/h, resting 0.45 m³/h):
+         window   — a 60-min walk moved from today's PM2.5 to the best
+                    window's mean PM2.5: dose(now) − dose(window).
+         mask     — a 45-min trip: dose without mask − dose with a fitted
+                    N95 (maskedDose = 5% of dose).
+         indoor   — 4 h resting indoors: wet-mopping/door sealing cuts
+                    the dose by an estimated 40%.
+         filter   — 8 h in a fan-filtered room: estimated 75% cut.
+         kitchen  — 1 h around cooking: exhaust + lids, estimated 30%.
+         community— no personal dose; CO₂ only.
+       Indoor concentration is estimated at 0.8× outdoor with no purifier
+       (the No Purifier toggle) and 0.45× with one. The % is the avoided
+       share of the total scenario dose; CO₂ is the sum of the checked
+       steps' per-step estimates and is labelled "(est.)" in the UI. */
+    function computeImpact() {
+      const air = appState.air;
+      if (!air) return { pct: 0, avoided: 0, co2: 0 };
+      const D = ClearAirLogic.exposureDose, M = ClearAirLogic.maskedDose;
+      const pm = air.now.pm25 != null ? air.now.pm25 : air.trail.pm25;
+      const bestAvg = air.bestWindow ? air.bestWindow.avg : pm;
+      const indoorPm = pm * (appState.profiles.noPurifier ? 0.8 : 0.45);
+      const scen = {
+        window:    { base: D(pm, 0.9, 60),       avoided: D(pm, 0.9, 60) - D(bestAvg, 0.9, 60) },
+        mask:      { base: D(pm, 0.9, 45),       avoided: D(pm, 0.9, 45) - M(D(pm, 0.9, 45)) },
+        indoor:    { base: D(indoorPm, 0.45, 240), avoided: D(indoorPm, 0.45, 240) * 0.40 },
+        filter:    { base: D(indoorPm, 0.45, 480), avoided: D(indoorPm, 0.45, 480) * 0.75 },
+        kitchen:   { base: D(indoorPm, 0.45, 60),  avoided: D(indoorPm, 0.45, 60) * 0.30 },
+        community: { base: 0, avoided: 0 }
+      };
+      let base = 0, avoided = 0, co2 = 0;
+      appState.actions.forEach(a => {
+        const s = scen[a.mechanism || "community"] || scen.community;
+        base += s.base;
+        if (a.checked) {
+          avoided += s.avoided;
+          co2 += (typeof a.co2Saved === "number" && isFinite(a.co2Saved) && a.co2Saved > 0) ? a.co2Saved : 0;
+        }
+      });
+      return {
+        pct: base > 0 ? Math.min(95, Math.round(avoided / base * 100)) : 0,
+        avoided: Math.round(avoided),
+        co2: co2
+      };
+    }
+
+    function renderImpactTracker() {
+      const t = UI_STRINGS[appState.lang];
+      const imp = computeImpact();
+      document.getElementById("impact-percent-badge").textContent = appState.air ? `-${imp.pct}% ${t.exposureSuffix}` : "—";
+      document.getElementById("impact-progress-bar").style.width = `${appState.air ? Math.max(imp.pct, imp.pct > 0 ? 8 : 0) : 0}%`;
+      document.getElementById("impact-pm-saved").textContent = appState.air ? `${imp.avoided} µg` : "—";
+      document.getElementById("impact-co2-saved").textContent = appState.air ? `${imp.co2.toFixed(1)} kg` : "—";
+    }
+
+    function renderActions() {
+      const t = UI_STRINGS[appState.lang];
+      const grid = document.getElementById("actions-grid");
+      const filtered = appState.activeFilter === "all"
+        ? appState.actions
+        : appState.actions.filter(a => a.category === appState.activeFilter);
+
+      grid.innerHTML = filtered.map(action => {
+        const content = action[appState.lang] || action.en;
+        return `
+          <article class="bg-white dark:bg-apple-darkCard border ${action.checked ? 'border-apple-ink dark:border-white' : 'border-apple-border dark:border-apple-darkBorder'} rounded-3xl p-5 flex flex-col justify-between gap-4 transition-colors">
+            <div class="space-y-2.5">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-apple-blue">${content.tag}</span>
+              <h3 class="text-[17px] font-semibold tracking-tight leading-snug">${content.title}</h3>
+              <p class="text-[14px] text-apple-secondary dark:text-apple-darkSecondary leading-relaxed">${content.description}</p>
+
+              <!-- Compact Direct Impact Strip -->
+              <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-3 space-y-1">
+                <p class="text-[13px]"><strong class="font-semibold text-apple-green">${t.lblHealth}:</strong> ${content.healthImpact}</p>
+                <p class="text-[13px]"><strong class="font-semibold">${t.lblPlanet}:</strong> ${content.envImpact}</p>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-apple-border/70 dark:border-apple-darkBorder flex items-center justify-between gap-3">
+              <button onclick="toggleActionCheck('${action.id}')" class="tap-scale flex items-center gap-2 text-[13px] font-medium">
+                <span class="w-5 h-5 rounded-md flex items-center justify-center border ${action.checked ? 'bg-apple-ink border-apple-ink text-white dark:bg-white dark:border-white dark:text-apple-ink' : 'border-apple-tertiary'}">
+                  ${action.checked ? '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                </span>
+                <span>${action.checked ? t.btnDone : t.btnDoThis}</span>
+              </button>
+
+              <button onclick="speakActionCard('${action.id}')" class="tap-scale px-3.5 py-1.5 rounded-full bg-apple-subtle dark:bg-apple-darkSubtle hover:bg-apple-border/70 text-[12px] font-medium flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-apple-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <span>${t.btnListen}</span>
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    /* "New Plan" (FIX 3): the steps are written by the Pollinations text
+       API from a prompt containing ONLY the computed live facts — the AI
+       never supplies an AQI or pollutant number (its co2Saved is treated
+       as the labelled estimate it is, and the dose maths never uses AI
+       output at all). On any failure the standard steps return, with an
+       honest toast — no fake "refreshed" message. */
+    function buildPlanPrompt() {
+      const air = appState.air;
+      const activeProfiles = Object.entries(appState.profiles)
+        .filter(([_, v]) => v)
+        .map(([k]) => k)
+        .join(", ") || "general urban household";
+      return [
+        "You are ClearAir, a careful air-quality assistant for Indian families.",
+        `FACTS: City: ${air.place.name} · CPCB NAQI now: ${air.naqi} (${ClearAirLogic.catIN(air.naqi)[0]}) · PM2.5 now: ${Math.round(air.now.pm25)} µg/m³ · Cleanest slot today: ${fmtWindow("en")} · Household: ${activeProfiles}.`,
+        "TASK: Create exactly 4 short, practical air-protection tips for this household. Return ONLY a JSON array (no markdown fences, no commentary). Each item must be an object: {\"category\": \"routine\"|\"indoor\"|\"community\", \"co2Saved\": number (kg of CO2 the tip prevents — a rough estimate), \"en\": {\"tag\": string, \"title\": string, \"description\": string (1-2 short sentences), \"healthImpact\": string, \"envImpact\": string}, \"hi\": {the same five fields in simple everyday Hindi}}.",
+        "RULES: Never invent AQI or pollutant numbers. No medical diagnosis. Keep every field short."
+      ].join("\n");
+    }
+
+    function parsePlanItems(txt) {
+      let s = String(txt).trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+      const i = s.indexOf("["), j = s.lastIndexOf("]");
+      if (i < 0 || j <= i) throw new Error("No JSON array in AI reply");
+      const arr = JSON.parse(s.slice(i, j + 1));
+      if (!Array.isArray(arr) || !arr.length) throw new Error("Empty plan");
+      return arr.map((item, idx) => {
+        const en = item.en || {}, hi = item.hi || {};
+        const req = ["tag", "title", "description", "healthImpact", "envImpact"];
+        for (const k of req) {
+          if (typeof en[k] !== "string" || typeof hi[k] !== "string") throw new Error("Bad plan item");
+        }
+        const cat = ["routine", "indoor", "community"].includes(item.category) ? item.category : "routine";
+        return {
+          id: `gen-${Date.now()}-${idx}`,
+          category: cat,
+          mechanism: cat === "routine" ? "window" : cat === "indoor" ? "indoor" : "community",
+          co2Saved: (typeof item.co2Saved === "number" && isFinite(item.co2Saved) && item.co2Saved >= 0)
+            ? item.co2Saved
+            : (cat === "community" ? 3.2 : cat === "routine" ? 1.4 : 0.3),
+          checked: idx < 2,
+          en: en,
+          hi: hi
+        };
+      });
+    }
+
+    async function generatePersonalizedPlan() {
+      if (!guardAir()) return;
+      const btn = document.getElementById("regenerate-btn");
+      btn.disabled = true;
+      try {
+        const txt = await askAI(buildPlanPrompt());
+        appState.actions = parsePlanItems(txt);
+        renderActions();
+        renderImpactTracker();
+        showToast(appState.lang === "hi" ? "नए सुझाव तैयार हैं" : "Updated daily plan");
+      } catch (e) {
+        appState.actions = JSON.parse(JSON.stringify(DEFAULT_ACTIONS));
+        renderActions();
+        renderImpactTracker();
+        showToast(UI_STRINGS[appState.lang].planFailed);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // =========================================================================
+    // 9. SENIOR "TAP & LISTEN" + THE VOICE ENGINE (FIX 3)
+    //    Web Speech only — the Gemini TTS endpoint is gone (it needed a
+    //    key). The engine below follows the tested ClearAir build:
+    //    voices are awaited up to ~3 s (they load late on real phones),
+    //    Hindi voice priority is hi-IN → any hi-* → Google Hindi by name,
+    //    speech is queued in sentence chunks with a resume watchdog, and
+    //    a failed Hindi attempt retries INSIDE the same tap in Roman
+    //    Hinglish instead of flipping the button off in silence.
+    // =========================================================================
+    function renderSeniorCards() {
+      const grid = document.getElementById("senior-cards-grid");
+      grid.innerHTML = SENIOR_VOICE_CARDS.map((card, idx) => {
+        const item = card[appState.lang] || card.en;
+        return `
+          <button onclick="handleSeniorCardTap(${idx})" class="tap-scale text-left bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder hover:border-apple-blue rounded-3xl p-6 flex items-center justify-between gap-4">
+            <h3 class="text-[20px] sm:text-[22px] font-semibold tracking-tight leading-snug">${item.title}</h3>
+            <div class="w-14 h-14 rounded-2xl bg-apple-canvas dark:bg-apple-darkSubtle flex items-center justify-center shrink-0 text-apple-blue">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </div>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function handleSeniorCardTap(index) {
+      if (!guardAir()) return;
+      const vm = seniorVM();
+      const card = SENIOR_VOICE_CARDS[index];
+      const item = card[appState.lang] || card.en;
+      const answer = item.getAnswer(vm);
+      const box = document.getElementById("senior-spoken-box");
+      const textEl = document.getElementById("senior-spoken-text");
+      box.classList.remove("hidden");
+      textEl.textContent = answer;
+      speakText(answer, appState.lang, appState.lang === "hi" ? card.hiRoman.getAnswer(vm) : null);
+    }
+
+    function activateQuickSeniorBriefing() {
+      switchTab("voice");
+      speakSeniorFullBriefing();
+    }
+
+    function speakSeniorFullBriefing() {
+      if (!guardAir()) return;
+      const air = appState.air;
+      const en = `Hello. In ${air.place.name}, today's air quality index is ${air.naqi}. ${buildSummary("en")}`;
+      const hi = `नमस्ते। ${air.place.name} में आज हवा का स्तर ${air.naqi} है। ${buildSummary("hi")}`;
+      const roman = `Namaste. ${air.place.name} mein aaj hawa ka star ${air.naqi} hai. ${buildSummaryRoman()}`;
+      const text = appState.lang === "hi" ? hi : en;
+      const box = document.getElementById("senior-spoken-box");
+      const textEl = document.getElementById("senior-spoken-text");
+      box.classList.remove("hidden");
+      textEl.textContent = text;
+      speakText(text, appState.lang, appState.lang === "hi" ? roman : null);
+    }
+
+    function speakHeroBriefing() {
+      if (!guardAir()) return;
+      const air = appState.air;
+      const en = `${air.place.name} AQI is ${air.naqi}. ${buildSummary("en")}`;
+      const hi = `${air.place.name} में AQI ${air.naqi} है। ${buildSummary("hi")}`;
+      const roman = `${air.place.name} mein AQI ${air.naqi} hai. ${buildSummaryRoman()}`;
+      speakText(appState.lang === "hi" ? hi : en, appState.lang, appState.lang === "hi" ? roman : null);
+    }
+
+    function speakActionCard(id) {
+      const action = appState.actions.find(a => a.id === id);
+      if (!action) return;
+      const c = action[appState.lang] || action.en;
+      const text = appState.lang === "hi"
+        ? `${c.title}। ${c.description} सेहत पर असर: ${c.healthImpact}`
+        : `${c.title}. ${c.description} Health impact: ${c.healthImpact}`;
+      let roman = null;
+      if (appState.lang === "hi") {
+        roman = action.hiRoman
+          ? `${action.hiRoman.title}. ${action.hiRoman.description} Sehat par asar: ${action.hiRoman.healthImpact}`
+          : `${action.en.title}. ${action.en.description} Health impact: ${action.en.healthImpact}`;
+      }
+      speakText(text, appState.lang, roman);
+    }
+
+    function setSeniorSpeed(rate) {
+      appState.speechRate = rate;
+      document.getElementById("rate-pill").textContent = `${rate === 0.85 ? '0.85x' : '1.0x'}`;
+      document.getElementById("speed-slow").className = rate === 0.85
+        ? "tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-ink text-white dark:bg-white dark:text-apple-ink"
+        : "tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-subtle dark:bg-apple-darkSubtle text-apple-ink dark:text-white";
+      document.getElementById("speed-normal").className = rate === 1.0
+        ? "tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-ink text-white dark:bg-white dark:text-apple-ink"
+        : "tap-scale px-4 py-2.5 rounded-2xl text-[14px] font-semibold bg-apple-subtle dark:bg-apple-darkSubtle text-apple-ink dark:text-white";
+    }
+
+    function toggleSpeechRate() {
+      setSeniorSpeed(appState.speechRate === 1.0 ? 0.85 : 1.0);
+    }
+
+    // ---- voice engine ----
+    let speakSession = 0, resumeTimer = null;
+
+    function voiceSupported() { return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window; }
+
+    function pickVoice(lang) {
+      if (!voiceSupported()) return null;
+      const vs = speechSynthesis.getVoices() || [];
+      const norm = (x) => (x || "").replace("_", "-").toLowerCase();
+      let i, v;
+      if (lang === "hi") {
+        /* Hindi, in order: exact hi-IN → any Hindi (hi / hi-*) → a Google
+           Hindi voice matched by name (its lang tag is not always
+           standard) → none (caller falls back to Roman Hinglish). */
+        for (i = 0; i < vs.length; i++) { if (norm(vs[i].lang) === "hi-in") return vs[i]; }
+        for (i = 0; i < vs.length; i++) { const l = norm(vs[i].lang); if (l === "hi" || l.indexOf("hi-") === 0) return vs[i]; }
+        for (i = 0; i < vs.length; i++) { v = vs[i]; if (/google/i.test(v.name || "") && /hindi|हिन्दी/i.test(v.name || "")) return v; }
+        return null;
+      }
+      const want = ["en-IN", "en-GB", "en-US", "en"];
+      for (let w = 0; w < want.length; w++) {
+        for (i = 0; i < vs.length; i++) { v = vs[i]; if (v.lang && norm(v.lang) === want[w].toLowerCase()) return v; }
+      }
+      for (i = 0; i < vs.length; i++) { v = vs[i]; if (v.lang && v.lang.toLowerCase().indexOf("en") === 0) return v; }
+      return null;
+    }
+
+    function hindiVoiceReady() {
+      if (!voiceSupported()) return false;
+      const vs = speechSynthesis.getVoices() || [];
+      for (let i = 0; i < vs.length; i++) {
+        const l = (vs[i].lang || "").replace("_", "-").toLowerCase();
+        if (l === "hi" || l.indexOf("hi-") === 0) return true;
+      }
+      return false;
+    }
+
+    function ensureVoices(cb) {
+      if (!voiceSupported()) { cb(); return; }
+      if ((speechSynthesis.getVoices() || []).length) { cb(); return; }
+      /* Voices load asynchronously and can take well over half a second
+         on real phones — speaking before the list is ready is how the
+         Hindi voice used to be missed. Wait for the first non-empty list
+         (event or poll — some engines never fire the event), up to ~3 s. */
+      let done = false, poll = null;
+      function fin() {
+        if (done) return; done = true;
+        if (poll) { clearInterval(poll); poll = null; }
+        try { speechSynthesis.removeEventListener("voiceschanged", h); } catch (e) {}
+        cb();
+      }
+      function h() { if ((speechSynthesis.getVoices() || []).length) fin(); }
+      try { speechSynthesis.addEventListener("voiceschanged", h); } catch (e) {}
+      poll = setInterval(h, 200);
+      setTimeout(fin, 3000);
+    }
+
+    /* Split into sentence-sized chunks: one long utterance is silently
+       cut off by Chrome/Android TTS; a queue of short ones plays through. */
+    function splitChunks(text) {
+      const parts = [];
+      let cur = "";
+      String(text).replace(/\s+/g, " ").split(" ").forEach(w => {
+        cur = cur ? cur + " " + w : w;
+        if (/[।.!?;]$/.test(w) || cur.length >= 170) { parts.push(cur); cur = ""; }
+      });
+      if (cur) parts.push(cur);
+      return parts.filter(p => p.trim().length > 0);
+    }
+
+    function setVoiceUI(on) {
+      appState.isSpeaking = on;
+      const banner = document.getElementById("audio-banner");
+      if (on) banner.classList.remove("hidden");
+      else banner.classList.add("hidden");
+    }
+
+    function stopAudio() {
+      speakSession++;
+      if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
+      if (voiceSupported()) speechSynthesis.cancel();
+      setVoiceUI(false);
+    }
+
+    function startSpeaking(text, lang, fellBack, fallback) {
+      const mySession = ++speakSession;
+      if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
+      speechSynthesis.cancel();
+      setVoiceUI(true);
+      const captionEl = document.getElementById("audio-caption-text");
+      const failNote = appState.lang === "hi"
+        ? "आवाज़ शुरू नहीं हो पाई — वही बात इस पेज पर लिखी है।"
+        : "Voice couldn't start — the same message is written on this page.";
+      let attemptNo = 0;
+      /* One attempt = one (text, language) pair queued as chunks. An
+         attempt FAILS when every chunk ends/errors without a single
+         onstart, or when the engine never reports speaking/pending. A
+         failed first attempt must NOT end the tap: on Android a listed
+         Hindi voice can still error on Devanagari utterances, and the
+         old behaviour treated that as the end — the button flipped back
+         off with nothing heard. Now the session retries inside the SAME
+         tap with the Roman-Hinglish fallback; only when no attempt is
+         left does it stop and show the fail note (never silent). Stop
+         still works instantly: stopAudio() bumps speakSession and every
+         callback below checks it. */
+      function runAttempt(txt, lng) {
+        if (mySession !== speakSession) return;
+        const myAttempt = ++attemptNo;
+        const chunks = splitChunks(txt);
+        if (!chunks.length) { finishAttempt(false); return; }
+        captionEl.textContent = txt;
+        let left = chunks.length, anyStart = false, settled = false;
+        function done() {
+          if (mySession !== speakSession || myAttempt !== attemptNo || settled) return;
+          left--;
+          if (left <= 0) { settled = true; finishAttempt(anyStart); }
+        }
+        /* Speak only after a short delay: speak() in the same tick as
+           cancel() is dropped by Android TTS. */
+        setTimeout(() => {
+          if (mySession !== speakSession || myAttempt !== attemptNo || settled) return;
+          const v = pickVoice(lng);
+          chunks.forEach(c => {
+            const u = new SpeechSynthesisUtterance(c);
+            u.lang = lng === "hi" ? "hi-IN" : "en-IN";
+            if (v) u.voice = v;
+            u.rate = appState.speechRate;
+            u.pitch = 1;
+            u.onstart = () => { if (mySession === speakSession && myAttempt === attemptNo) anyStart = true; };
+            u.onend = done;
+            u.onerror = () => { done(); };
+            speechSynthesis.speak(u);
+          });
+          /* Could-not-start watchdog for THIS attempt. */
+          setTimeout(() => {
+            if (mySession !== speakSession || myAttempt !== attemptNo || settled || anyStart) return;
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) { settled = true; finishAttempt(false); }
+          }, 3500);
+        }, 150);
+        /* Chrome stalls long speech after ~15 s unless resume() is
+           called periodically. */
+        if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
+        resumeTimer = setInterval(() => {
+          if (mySession !== speakSession) { clearInterval(resumeTimer); resumeTimer = null; return; }
+          if (speechSynthesis.speaking) speechSynthesis.resume();
+        }, 5000);
+      }
+      function finishAttempt(started) {
+        if (mySession !== speakSession) return;
+        if (resumeTimer) { clearInterval(resumeTimer); resumeTimer = null; }
+        if (started) { setVoiceUI(false); return; }
+        if (fallback && fallback.text) {
+          const fb = fallback; fallback = null;
+          speechSynthesis.cancel();
+          showToast(appState.lang === "hi" ? "Hindi आवाज़ नहीं चली — Hinglish में बोल रहे हैं।" : "The Hindi voice didn't start — speaking Hinglish instead.");
+          runAttempt(fb.text, fb.lang);
+          return;
+        }
+        setVoiceUI(false);
+        showToast(failNote);
+      }
+      runAttempt(text, lang);
+    }
+
+    function speakText(text, lang, romanText) {
+      if (!voiceSupported()) {
+        showToast(lang === "hi"
+          ? "इस phone / browser में आवाज़ support नहीं है — वही बात इस पेज पर लिखी है।"
+          : "Voice not supported here — the same message is written on this page.");
+        return;
+      }
+      /* Claim a session up front: if the user taps Stop (or another
+         Listen button) while voices are still loading, the pending
+         callback sees a stale session and does not start speaking. */
+      const myReq = ++speakSession;
+      setVoiceUI(true);
+      document.getElementById("audio-caption-text").textContent = lang === "hi" ? "आवाज़ तैयार हो रही है…" : "Preparing voice…";
+      ensureVoices(() => {
+        if (myReq !== speakSession) return;
+        /* No Hindi voice on this phone: an English-only engine stays
+           silent on Devanagari, so speak the same content in Roman
+           Hinglish with the English voice — audible and understood. */
+        if (lang === "hi" && romanText && !hindiVoiceReady()) {
+          showToast("Hindi आवाज़ pack नहीं मिला — Hinglish में बोल रहे हैं।");
+          startSpeaking(romanText, "en", true, null);
+          return;
+        }
+        /* A Hindi voice is listed: try Devanagari on it first — with the
+           Roman text handed over as an in-tap fallback. */
+        if (lang === "hi" && romanText) { startSpeaking(text, "hi", false, { text: romanText, lang: "en" }); return; }
+        startSpeaking(text, lang, false, null);
+      });
+    }
+
+    // =========================================================================
+    // 10. ASK CLEARAIR AI (FIX 3) — Pollinations, grounded in the live
+    //     facts, honestly labelled; built-in grounded answers as the
+    //     labelled fallback. The AI never calculates a number.
+    // =========================================================================
+    const AI_URL = "https://text.pollinations.ai/openai";
+
+    function askAI(prompt) {
+      const ctl = ("AbortController" in window) ? new AbortController() : null;
+      const timer = ctl ? setTimeout(() => { ctl.abort(); }, 20000) : null;
+      function clear() { if (timer) { clearTimeout(timer); } }
+      return fetch(AI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "openai", messages: [{ role: "user", content: prompt }] }),
+        signal: ctl ? ctl.signal : undefined
+      })
+        .then(r => { if (!r.ok) throw new Error("AI HTTP " + r.status); return r.json(); })
+        .then(j => {
+          clear();
+          const txt = j && j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content : null;
+          if (typeof txt !== "string" || !txt.trim()) throw new Error("Empty AI reply");
+          return txt.trim();
+        })
+        .catch(e => { clear(); throw e; });
+    }
+
+    /* Ask prompt: the user's question plus ONLY the live facts the
+       built-in answer uses, so the AI is grounded in the same numbers. */
+    function buildAskPrompt(q) {
+      const air = appState.air;
+      const hindi = appState.lang === "hi" || /[\u0900-\u097F]/.test(q);
+      const r = householdRisk();
+      return [
+        "You are ClearAir, a careful air-quality assistant for Indian families. Answer the user's question using ONLY the live facts below. Never invent numbers. No medical diagnosis.",
+        `FACTS: Place: ${air.place.name} · CPCB NAQI now: ${air.naqi} (${ClearAirLogic.catIN(air.naqi)[0]}) · US AQI: ${air.usAqi} · PM2.5 now: ${Math.round(air.now.pm25)} µg/m³ · PM10 now: ${Math.round(air.now.pm10)} µg/m³ · Cleanest slot today: ${fmtWindow("en")} · Household risk score (most sensitive member): ${r.score}/100 (${riskVerdictEn(r.band)}).`,
+        `Keep the answer short — 2 or 3 sentences, practical, in ${hindi ? "Hindi" : "English"}.`,
+        "QUESTION: " + q
+      ].join("\n");
+    }
+
+    /* Built-in grounded answers — the labelled fallback when the AI
+       service is unreachable. Same facts, same numbers, fixed rules. */
+    function builtinAnswer(q) {
+      const s = q.toLowerCase();
+      const hindi = appState.lang === "hi" || /[\u0900-\u097F]/.test(q) || /mask pehn|bachch|khel|khidki/.test(s);
+      const air = appState.air;
+      const a = air.naqi;
+      const r = householdRisk();
+      const winE = fmtWindow("en"), winH = fmtWindow("hi");
+      const en = {
+        mask: a > 100 ? `Yes — at CPCB AQI ${a}, wear a fitted N95/KN95 for outings over ~20 minutes. Cloth masks barely stop PM2.5.` : `At CPCB AQI ${a}, a mask is optional for healthy adults; sensitive people may still prefer one.`,
+        play: a > 200 ? `Not today — AQI ${a} is poor for children's lungs. Indoor play, or the cleanest slot ${winE} at most.` : a > 100 ? `Short play is okay, ideally in the cleanest slot ${winE}, away from main roads.` : `Yes — air is fine for outdoor play today (AQI ${a}).`,
+        run: `For your household's most sensitive member, the personal risk score is ${r.score}/100: ${riskVerdictEn(r.band)}.`,
+        room: `Without a purifier: keep doors and windows closed during peak hours, wet-mop instead of dry sweeping, place damp towels at door gaps, and run a room fan with a MERV-13 filter if you have one. Ventilate briefly in the cleanest slot, ${winE}.`,
+        win: `Open windows briefly in the cleanest slot, ${winE}. Keep them closed during morning and night peaks, and wet-mop floors instead of dry sweeping.`,
+        def: "The risk score is computed from the live CPCB AQI × the household profile × activity × minutes outside, by fixed rules — same inputs, same verdict."
+      };
+      const hi = {
+        mask: a > 100 ? `हाँ — CPCB AQI ${a} पर 20 मिनट से लंबी बाहर की यात्रा के लिए फिटेड N95/KN95 पहनें। कपड़े का मास्क PM2.5 से ज़्यादा सुरक्षा नहीं देता।` : `CPCB AQI ${a} पर स्वस्थ वयस्कों के लिए मास्क वैकल्पिक है; संवेदनशील लोग चाहें तो पहन सकते हैं।`,
+        play: a > 200 ? `आज बेहतर होगा कि बच्चे बाहर न खेलें — AQI ${a} बच्चों के फेफड़ों के लिए खराब है। घर के अंदर खेलें, या ज़्यादा से ज़्यादा सबसे साफ़ समय ${winH} में।` : a > 100 ? `थोड़ी देर खेल सकते हैं, सबसे अच्छा समय ${winH} है, मुख्य सड़कों से दूर।` : `हाँ — आज हवा बच्चों के बाहर खेलने के लिए ठीक है (AQI ${a})।`,
+        run: `आपके परिवार के सबसे संवेदनशील सदस्य के लिए risk score ${r.score}/100 है। सलाह: ${["सामान्य सावधानी के साथ ठीक है", "ध्यान रखकर ठीक है", "समय कम करें — या मास्क पहनें", "आज बाहर न ही जाएं तो बेहतर"][r.band]}।`,
+        room: `बिना प्यूरीफायर के: भीड़ वाले समय में दरवाज़े-खिड़कियां बंद रखें, सूखी झाड़ू की जगह गीला पोंछा लगाएं, दरवाज़े के नीचे गीला तौलिया रखें, और हो तो पंखे पर MERV-13 फ़िल्टर लगाकर चलाएं। सबसे साफ़ समय ${winH} में थोड़ी देर हवादार करें।`,
+        win: `खिड़कियां सबसे साफ़ समय ${winH} में थोड़ी देर खोलें। सुबह और रात के भीड़ वाले समय में बंद रखें, और सूखी झाड़ू की जगह गीला पोंछा लगाएं।`,
+        def: "Risk score live CPCB AQI, आपकी household profile, activity और बाहर बिताए समय से तय नियमों से बनता है — वही इनपुट, वही नतीजा।"
+      };
+      const L = hindi ? hi : en;
+      if (/mask|मास्क|n95/.test(s)) return L.mask;
+      if (/kid|child|bachch|बच्च|play|khel|खेल/.test(s)) return L.play;
+      if (/purifier|प्यूरीफायर|room air|कमरे की हवा|clean.*(room|indoor)|indoor air/.test(s)) return L.room;
+      if (/run|exercise|walk|cycle|sport|दौड़|टहल|कसरत/.test(s)) return L.run;
+      if (/window|ventilat|khidki|खिड़क|खिड़की/.test(s)) return L.win;
+      if (/risk|score|स्कोर/.test(s)) return L.def;
+      return hindi
+        ? `इस समय ${air.place.name} में CPCB AQI ${a} (${UI_STRINGS.hi.cats[bandOf(a)]}) है। सबसे साफ़ समय ${winH} है। मास्क, बच्चों के खेल या खिड़की के बारे में पूछकर देखें।`
+        : `Right now ${air.place.name} is at CPCB AQI ${a} (${UI_STRINGS.en.cats[bandOf(a)]}). Cleanest slot: ${winE}. Ask me about masks, kids playing, exercise or windows.`;
+    }
+
+    function renderChatIntroAndPrompts() {
+      const t = UI_STRINGS[appState.lang];
+
+      document.getElementById("suggested-prompts-container").innerHTML = t.suggestedPrompts.map(p => `
+        <button onclick="askSuggestedPrompt('${p.replace(/'/g, "\\'")}')" class="tap-scale px-3.5 py-2 rounded-full bg-apple-canvas dark:bg-apple-darkSubtle text-[13px] font-medium hover:bg-apple-border/60 text-left">
+          ${p}
+        </button>
+      `).join("");
+
+      const container = document.getElementById("chat-messages");
+      container.innerHTML = `
+        <div class="bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[12px] font-semibold text-apple-blue">ClearAir AI</span>
+            <button onclick="speakChatWelcome()" class="px-3 py-1 rounded-full bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder text-[12px] font-medium">
+              ${t.btnListen}
+            </button>
+          </div>
+          <p class="text-[14px] leading-relaxed">${t.chatWelcome}</p>
+        </div>
+      `;
+    }
+
+    function speakChatWelcome() {
+      const t = UI_STRINGS[appState.lang];
+      speakText(t.chatWelcome, appState.lang, appState.lang === "hi" ? UI_STRINGS.en.chatWelcome : null);
+    }
+
+    function askSuggestedPrompt(promptText) {
+      document.getElementById("chat-input").value = promptText;
+      handleChatSubmit(new Event("submit"));
+    }
+
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById("chat-input");
+      const query = input.value.trim();
+      if (!query) return;
+      if (!guardAir()) return;
+      input.value = "";
+
+      const t = UI_STRINGS[appState.lang];
+      const container = document.getElementById("chat-messages");
+
+      const userBubble = document.createElement("div");
+      userBubble.className = "ml-auto max-w-xl bg-apple-ink dark:bg-white text-white dark:text-apple-ink rounded-2xl px-4 py-3 text-[14px]";
+      userBubble.textContent = query;
+      container.appendChild(userBubble);
+
+      const loadingBubble = document.createElement("div");
+      loadingBubble.className = "bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-4 text-[14px] text-apple-secondary";
+      loadingBubble.textContent = appState.lang === "hi" ? "जवाब तैयार हो रहा है..." : "Thinking...";
+      container.appendChild(loadingBubble);
+      container.scrollTop = container.scrollHeight;
+
+      let replyText, sourceLabel;
+      try {
+        replyText = await askAI(buildAskPrompt(query));
+        sourceLabel = t.aiLabel;
+      } catch (err) {
+        /* AI unreachable or unusable — the built-in guide answers from
+           the same live facts, and the label says so. */
+        replyText = builtinAnswer(query);
+        sourceLabel = t.guideLabel;
+      }
+
+      const safeId = `msg-${Date.now()}`;
+      loadingBubble.className = "bg-apple-canvas dark:bg-apple-darkSubtle rounded-2xl p-4 space-y-2";
+      loadingBubble.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[12px] font-semibold text-apple-blue">ClearAir AI</span>
+          <button id="${safeId}" class="px-3 py-1 rounded-full bg-white dark:bg-apple-darkCard border border-apple-border dark:border-apple-darkBorder text-[12px] font-medium">
+            ${t.btnListen}
+          </button>
+        </div>
+        <p class="text-[14px] leading-relaxed whitespace-pre-line">${escapeHtml(replyText)}</p>
+        <p class="text-[11px] text-apple-secondary dark:text-apple-darkSecondary">${sourceLabel}</p>
+      `;
+      const air = appState.air;
+      document.getElementById(safeId).addEventListener("click", () => {
+        speakText(replyText, appState.lang, appState.lang === "hi" ? `${air.place.name} mein AQI ${air.naqi} hai. ${buildSummaryRoman()}` : null);
+      });
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+  </script>
+</body>
+</html>
