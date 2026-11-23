@@ -5,7 +5,7 @@
 :root{
   color-scheme:light;
   --bg:#f7f7f5; --surface:#ffffff; --surface2:#f2f2f0; --hero-bg:#f3f3f1;
-  --ink:#111113; --ink2:#55565a; --ink3:#86868c;
+  --ink:#111113; --ink2:#55565a; --ink3:#6d6d72;
   --line:#d9d9d6; --line2:#e7e7e4; --accent:#111113; --accent-ink:#111113; --on-accent:#ffffff;
   --good:#1a7f37; --fair:#8a6d00; --mod:#b25e09; --poor:#c9341f; --vpoor:#9333a6; --severe:#7e1d3f;
   --radius:24px; --radius-s:16px;
@@ -103,6 +103,9 @@ nav.sub a:hover{background:var(--surface2);color:var(--ink)}
 .bw-card .sub{color:#a7a7ad}
 .bw-card label.fl{color:#d1d1d6}
 .bw-card select{background:#26262a;border-color:#3a3a3f;color:#f5f5f7}
+/* On the black card the default near-black focus outline is invisible —
+   use the card's own light ink so keyboard focus stays visible. */
+.bw-card :focus-visible{outline-color:#f5f5f7}
 .bw-card>.big-stat{font-size:42px;color:#ffffff;letter-spacing:-.03em;line-height:1.05}
 .bw-card #bestDetail{color:#d1d1d6}
 .bw-card .kicker{color:#a7a7ad}
@@ -161,8 +164,6 @@ input[type="range"]{width:100%;accent-color:var(--accent);min-height:36px}
 .check li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line2);font-size:14.5px;align-items:flex-start}
 .check li:first-child{border-top:0}
 .check .lucide{margin-top:1px}
-.check li.done{color:var(--ink3);text-decoration:line-through}
-.check button{margin-left:auto}
 
 /* Table-ish compare */
 .cmp{display:grid;grid-template-columns:1fr;gap:10px}
@@ -180,7 +181,6 @@ details summary{font-weight:600;font-size:14px;cursor:pointer;display:flex;align
 pre{white-space:pre-wrap;font-size:12.5px;color:var(--ink2);margin:10px 0 0}
 .notice{border:1px solid var(--line2);border-radius:var(--radius-s);padding:12px 14px;font-size:13.5px;color:var(--ink2);display:flex;gap:10px;background:transparent}
 .err{color:var(--poor);font-size:13.5px;font-weight:600}
-canvas.cardimg{max-width:100%;height:auto;border-radius:var(--radius-s);border:1px solid var(--line2)}
 footer{margin-top:28px;color:var(--ink3);font-size:12.5px;text-align:center}
 a{color:var(--accent-ink)}
 .taskrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line2);font-size:14.5px;flex-wrap:wrap}
@@ -210,3 +210,7 @@ a{color:var(--accent-ink)}
 
 /* Visually hidden but available to assistive technology (page <h1>) */
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Skip link — off-screen until it receives keyboard focus */
+.skip{position:absolute;left:12px;top:-60px;z-index:100;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none;transition:top .15s ease}
+.skip:focus-visible{top:12px}

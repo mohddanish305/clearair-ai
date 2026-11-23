@@ -7,10 +7,16 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src https://www.openstreetmap.org; connect-src 'self' https://air-quality-api.open-meteo.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://text.pollinations.ai; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='15' fill='%23202124'/%3E%3Cg transform='translate(11 16) scale(1.35)' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2'/%3E%3Cpath d='M9.6 4.6A2 2 0 1 1 11 8H2'/%3E%3Cpath d='M12.6 19.4A2 2 0 1 0 14 16H2'/%3E%3C/g%3E%3Ccircle cx='46' cy='32' r='4.6' fill='%2330d158'/%3E%3C/svg%3E" />
 <title>ClearAir — Personal Air Quality Assistant</title>
-<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
+<link rel="preconnect" href="https://api.open-meteo.com" />
+<link rel="preconnect" href="https://geocoding-api.open-meteo.com" />
+<link rel="preconnect" href="https://unpkg.com" />
+<link rel="preconnect" href="https://text.pollinations.ai" />
+<script defer src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+<a class="skip" href="#main">Skip to main content</a>
 <header class="top">
   <div class="top-in">
     <div class="brand"><svg class="appmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="15" fill="#202124"/><g transform="translate(11 16) scale(1.35)" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></g><circle cx="46" cy="32" r="4.6" fill="#30d158"/></svg>ClearAir</div>
@@ -30,7 +36,7 @@
   </nav>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1">
   <h1 class="vh">ClearAir — your personal air quality assistant</h1>
   <p class="err" id="loadErr" role="alert" hidden></p>
   <p id="retryRow" hidden style="margin:0 0 4px"><button class="btn primary" type="button" id="retryBtn"><i data-lucide="refresh-cw"></i>Retry live data</button></p>
@@ -39,7 +45,7 @@
   <div class="grid hero" id="now">
     <section class="card hero-card" aria-labelledby="nowH">
       <p class="kicker" id="placeLine">Loading live air data…</p>
-      <h2 id="nowH" class="sr" style="position:absolute;left:-9999px">Current air quality</h2>
+      <h2 id="nowH" class="vh">Current air quality</h2>
       <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
         <div class="aqi-main">
           <div class="aqi-num" id="aqiNum">–</div>
@@ -64,7 +70,7 @@
         <h3><i data-lucide="volume-2"></i><span id="voiceTitle">Listen instead of reading</span></h3>
         <p class="vsub" id="voiceSub">Tap — the app speaks today's air and what to do.</p>
         <div class="voice-btns">
-          <button class="btn primary voice-btn" type="button" id="voiceBtn"><i data-lucide="volume-2"></i><span id="voiceBtnLbl">Listen</span></button>
+          <button class="btn primary voice-btn" type="button" id="voiceBtn" aria-pressed="false"><i data-lucide="volume-2"></i><span id="voiceBtnLbl">Listen</span></button>
           <button class="btn voice-btn" type="button" id="voiceStop" hidden><i data-lucide="square"></i><span id="voiceStopLbl">Stop</span></button>
         </div>
         <p class="voice-simple" id="voiceSimple">Today's air in simple words appears here — the voice reads the same.</p>
@@ -156,7 +162,8 @@
   <section class="card" id="forecast" aria-labelledby="fcH" style="margin-top:16px">
     <h2 id="fcH"><i data-lucide="chart-line"></i>Forecast &amp; last 7 days</h2>
     <p class="sub">Next 24 h, hourly. Worst hour marked.</p>
-    <div id="fcChart" role="img" aria-label="Hourly PM2.5 chart for the next 24 hours"></div>
+    <div id="fcChart" role="img" aria-label="Hourly PM2.5 chart for the next 24 hours" aria-describedby="fcDesc"></div>
+    <p class="vh" id="fcDesc"></p>
     <div class="stat-grid" style="margin-top:14px">
       <div class="stat"><div class="l">Worst hour (24 h)</div><div class="big-stat" id="worstHour">–</div><div class="mini" id="worstHourV"></div></div>
     </div>
@@ -260,7 +267,7 @@
     <section class="card" id="compare" aria-labelledby="cmpH">
       <h2 id="cmpH"><i data-lucide="git-compare"></i>Compare places</h2>
       <p class="sub">Same hour, same standard, live.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="cmpA" placeholder="Place 1 — e.g. Jaipur" style="flex:1;min-width:120px" /><input type="text" id="cmpB" placeholder="Place 2 — e.g. Pune" style="flex:1;min-width:120px" /><input type="text" id="cmpC" placeholder="Place 3 (optional)" style="flex:1;min-width:120px" /></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="cmpA" placeholder="Place 1 — e.g. Jaipur" aria-label="First place to compare" style="flex:1;min-width:120px" /><input type="text" id="cmpB" placeholder="Place 2 — e.g. Pune" aria-label="Second place to compare" style="flex:1;min-width:120px" /><input type="text" id="cmpC" placeholder="Place 3 (optional)" aria-label="Third place to compare (optional)" style="flex:1;min-width:120px" /></div>
       <button class="btn primary cta" type="button" id="cmpBtn" style="margin-top:12px"><i data-lucide="scale"></i>Compare live<i data-lucide="arrow-right"></i></button>
       <div class="cmp" id="cmpOut" style="margin-top:12px"></div>
     </section>
@@ -301,7 +308,7 @@
   <footer>ClearAir · Live data: Open-Meteo (CAMS) · Not a medical device — follow your doctor &amp; CPCB advisories.</footer>
 </main>
 
-<script src="logic.js"></script>
-<script src="app.js"></script>
+<script defer src="logic.js"></script>
+<script defer src="app.js"></script>
 </body>
 </html>

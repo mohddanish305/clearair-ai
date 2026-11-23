@@ -62,7 +62,10 @@ function load(lat,lon,name,country){
     // CPCB from trailing 24h means
     var times=a.hourly.time, nowIdx=times.length-1;
     var cur=new Date(a.current.time).getTime();
-    for(var i=0;i<times.length;i++){ if(new Date(times[i]).getTime()<=cur) nowIdx=i; }
+    /* Hourly times are ascending, so the current hour is the last entry
+       at or before the feed's current time: stop at the first later
+       entry instead of Date-parsing all ~336 of them. */
+    for(var i=0;i<times.length;i++){ if(new Date(times[i]).getTime()<=cur) nowIdx=i; else break; }
     S.nowIdx=nowIdx;
     function trail(key,h){ var s=[],from=Math.max(0,nowIdx-h+1); for(var j=from;j<=nowIdx;j++) s.push(a.hourly[key][j]); return mean(s); }
     S.trail={ pm25:trail("pm2_5",24), pm10:trail("pm10",24), no2:trail("nitrogen_dioxide",24), so2:trail("sulphur_dioxide",24), o3:trail("ozone",8), co:trail("carbon_monoxide",8)/1000 };
@@ -71,6 +74,7 @@ function load(lat,lon,name,country){
     S.domKey=Object.keys(subs).reduce(function(m,k){return subs[k]>subs[m]?k:m;},"pm25");
     S.usAqi=a.current.us_aqi||0; S.pm25Now=a.current.pm2_5||S.trail.pm25;
     S.fetchedAt=Date.now();
+    buildHourCache();
     S.updated=new Date(a.current.time).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
     /* Data HAS loaded at this point — a rendering hiccup must never be
        reported as a connection failure (that was the screenshot bug:
@@ -116,7 +120,11 @@ function renderAll(){
   $("severeBox").hidden = S.cpcb<=300;
   $("severeChecklist").hidden = S.cpcb<=300;
   renderPollutants(); renderWx(); renderBest(); renderRisk(); renderForecast(); renderSim(); renderVent(); renderPlanner();
-  $("mapFrame").src="https://www.openstreetmap.org/export/embed.html?bbox="+(S.place.lon-0.09)+"%2C"+(S.place.lat-0.05)+"%2C"+(S.place.lon+0.09)+"%2C"+(S.place.lat+0.05)+"&layer=mapnik&marker="+S.place.lat+"%2C"+S.place.lon;
+  /* Re-assigning an iframe's src reloads it even when the URL is
+     unchanged — and renderAll() also runs on the NAQI/EPA toggle and
+     every auto-refresh. Only re-point the map when the place changed. */
+  var mapKey=S.place.lat+","+S.place.lon;
+  if(S._mapKey!==mapKey){ S._mapKey=mapKey; $("mapFrame").src="https://www.openstreetmap.org/export/embed.html?bbox="+(S.place.lon-0.09)+"%2C"+(S.place.lat-0.05)+"%2C"+(S.place.lon+0.09)+"%2C"+(S.place.lat+0.05)+"&layer=mapnik&marker="+S.place.lat+"%2C"+S.place.lon; }
 }
 function headline(a){
   if(S.standard==="IN"){ if(a<=50)return "Good air today — no changes needed."; if(a<=100)return "Acceptable air. Sensitive people: watch symptoms on long outings."; if(a<=200)return "Moderate air. Shorten hard exercise; windows shut at peak hours."; if(a<=300)return "Poor air. Exercise indoors; N95 outside."; if(a<=400)return "Very poor air. Avoid outdoor exertion."; return "Severe air. Stay indoors; follow the protocol below."; }
@@ -139,8 +147,21 @@ function renderWx(){
   $("wxNote").textContent = (w.wind_speed_10m<8 ? "Light wind ("+d+") — pollution builds up. " : "Wind ("+d+", "+fmt(w.wind_speed_10m,0)+" km/h) is clearing pollution. ") + (w.relative_humidity_2m>75 ? "High humidity — air feels heavier." : "Humidity comfortable.");
 }
 /* Best window + cleaner direction */
-function next24(){ var out=[]; for(var i=S.nowIdx;i<Math.min(S.hourly.time.length,S.nowIdx+24);i++) out.push({t:S.hourly.time[i],pm:S.hourly.pm2_5[i],aqi:S.hourly.us_aqi?S.hourly.us_aqi[i]:null}); return out; }
-function bestWindow(){ if(!S.hourly) return null; return ClearAirLogic.bestWindowFromHours(next24()); }
+/* The next-24h series and its best window depend only on the loaded
+   hourly data, but they are asked for in several places per render
+   (best-window card, forecast, ventilation, planner, spoken plan).
+   They used to be rebuilt from scratch on every ask — a fresh
+   24-object array plus a full scan, ~6x per renderAll(). Build them
+   once per load() (buildHourCache) and share the result; the entries
+   are read-only for every consumer. The old per-entry "aqi" field was
+   never read anywhere and is gone. */
+var _h24=null, _bestWin=null;
+function buildHourCache(){
+  _h24=[]; for(var i=S.nowIdx;i<Math.min(S.hourly.time.length,S.nowIdx+24);i++) _h24.push({t:S.hourly.time[i],pm:S.hourly.pm2_5[i]});
+  _bestWin=ClearAirLogic.bestWindowFromHours(_h24);
+}
+function next24(){ return _h24||[]; }
+function bestWindow(){ if(!S.hourly) return null; return _bestWin; }
 function renderBest(){
   var b=bestWindow(); if(!b) return;
   $("bestWindow").textContent=hourLabel(b.from)+" – "+hourLabel(b.to);
@@ -191,10 +212,15 @@ function renderForecast(){
   var h=next24(); if(!h.length) return;
   if(!S.worst||!S.worst.t){ S.worst=h.reduce(function(m,x){return x.pm>m.pm?x:m;},{pm:-1,t:h[0].t}); }
   var max=Math.max.apply(null,h.map(function(x){return x.pm;}))*1.15, W=720,H=170,pad=26,bw=(W-pad*2)/h.length;
-  var bars=h.map(function(x,i){ var bh=(x.pm/max)*(H-50); var isWorst=S.worst&&x.t===S.worst.t;
-    return '<rect x="'+(pad+i*bw+1).toFixed(1)+'" y="'+(H-24-bh).toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="3" fill="'+(isWorst?"var(--poor)":"var(--ink3)")+'" opacity="'+(isWorst?1:0.55)+'"><title>'+hourLabel(x.t)+": PM2.5 "+fmt(x.pm,0)+' µg/m³</title></rect>'+(i%3===0?'<text x="'+(pad+i*bw+bw/2).toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--ink3)" text-anchor="middle">'+hourLabel(x.t)+'</text>':""); }).join("");
+  var bars=h.map(function(x,i){ var bh=(x.pm/max)*(H-50); var isWorst=S.worst&&x.t===S.worst.t; var lbl=hourLabel(x.t);
+    return '<rect x="'+(pad+i*bw+1).toFixed(1)+'" y="'+(H-24-bh).toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="3" fill="'+(isWorst?"var(--poor)":"var(--ink3)")+'" opacity="'+(isWorst?1:0.55)+'"><title>'+lbl+": PM2.5 "+fmt(x.pm,0)+' µg/m³</title></rect>'+(i%3===0?'<text x="'+(pad+i*bw+bw/2).toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--ink3)" text-anchor="middle">'+lbl+'</text>':""); }).join("");
   $("fcChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="presentation">'+bars+'</svg><p class="mini">Hourly PM2.5, next 24 h. Dark red = worst hour.</p>';
   if(S.worst&&S.worst.t){ $("worstHour").textContent=hourLabel(S.worst.t); $("worstHourV").textContent="PM2.5 "+fmt(S.worst.pm,0)+" µg/m³ — windows shut, exercise indoors."; }
+  /* Text summary of the chart for screen readers (the SVG itself is
+     role="img"; this is its aria-describedby target). */
+  var fcD=$("fcDesc");
+  if(fcD){ var lo=h.reduce(function(m,x){return x.pm<m?x.pm:m;},Infinity);
+    fcD.textContent="Over the next 24 hours PM2.5 ranges from "+fmt(lo,0)+" to "+fmt(S.worst?S.worst.pm:0,0)+" µg/m³."+(S.worst&&S.worst.t?" The worst hour is "+hourLabel(S.worst.t)+".":""); }
   // daily means from hourly
   var byDay={}; S.hourly.time.forEach(function(t,i){ var d=t.slice(0,10); (byDay[d]=byDay[d]||[]).push(S.hourly.pm2_5[i]); });
   var days=Object.keys(byDay).sort().map(function(d){return {d:d,v:mean(byDay[d])};});
@@ -227,11 +253,17 @@ function buildHabits(){
 function renderPlanner(){
   var el=$("taskList"); $("taskEmpty").style.display=S.tasks.length?"none":"block";
   // next24()/bestWindow() are loop-invariant — compute once, not per task.
-  var h24=null, bw=null;
-  if(S.hourly && S.tasks.some(function(t){return t.kind==="outdoor";})){ h24=next24(); bw=bestWindow(); }
+  var bw=null, byLabel=null;
+  if(S.hourly && S.tasks.some(function(t){return t.kind==="outdoor";})){
+    bw=bestWindow();
+    /* Index the cached hours by their display label once, instead of
+       re-filtering (and re-labelling) all 24 entries for every task.
+       First entry wins, exactly like filter()[0] did. */
+    byLabel={}; next24().forEach(function(x){ var l=hourLabel(x.t); if(!(l in byLabel)) byLabel[l]=x; });
+  }
   el.innerHTML=S.tasks.map(function(t,i){
     var note="";
-    if(t.kind==="outdoor"&&S.hourly){ var at=h24.filter(function(x){return hourLabel(x.t)===t.timeLabel;})[0]; var b=bw;
+    if(t.kind==="outdoor"&&S.hourly){ var at=byLabel[t.timeLabel]; var b=bw;
       if(at&&b&&at.pm>b.avg*1.25){ t.moved=hourLabel(b.from); note='<span class="impact">Moved to '+t.moved+' — PM2.5 ≈ '+fmt(b.avg,0)+' instead of ≈ '+fmt(at.pm,0)+' µg/m³ at '+t.timeLabel+'.</span>'; }
       else note='<span class="mini">Already a clean slot.</span>'; }
     if(t.kind==="fixed") note='<span class="mini">Fixed — mask &amp; route advice applies.</span>';
@@ -433,9 +465,11 @@ function setVoiceUI(on){
   voiceOn=on;
   $("voiceStop").hidden=!on;
   $("voiceBtn").classList.toggle("speaking",on);
+  /* The Listen button is a play/stop toggle — expose that state too. */
+  $("voiceBtn").setAttribute("aria-pressed",on?"true":"false");
   if(!on) $("voiceStatus").textContent="";
 }
-var speakSession=0, speakChunksLeft=0, resumeTimer=null;
+var speakSession=0, resumeTimer=null;
 function stopSpeaking(){ speakSession++; if(resumeTimer){ clearInterval(resumeTimer); resumeTimer=null; } if(voiceSupported()) speechSynthesis.cancel(); setVoiceUI(false); }
 function hindiVoiceReady(){
   if(!voiceSupported()) return false;
@@ -808,8 +842,11 @@ $("themeBtn").addEventListener("click",function(){
   paintThemeBtn();
 });
 /* ========= Live freshness — auto-refresh + "updated … ago" ========= */
+/* tickLive runs every 30 s for the page's whole lifetime against an
+   element that is never replaced — resolve it once and cache it. */
+var _liveTxtEl=null;
 function tickLive(){
-  var el=$("liveTxt"); if(!el) return;
+  var el=_liveTxtEl||(_liveTxtEl=$("liveTxt")); if(!el) return;
   if(!S.fetchedAt){ el.textContent="LIVE · connecting…"; return; }
   var m=Math.floor((Date.now()-S.fetchedAt)/60000);
   el.textContent="LIVE · updated "+(m<1?"just now":m+" min ago")+" · auto-refresh on";

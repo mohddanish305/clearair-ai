@@ -123,13 +123,16 @@ Lucide icons, Web Speech API. Deployable as-is on GitHub Pages.
 
 The deterministic logic is unit-tested with Node's built-in test runner
 (zero dependencies). The suite covers CPCB NAQI at breakpoint boundaries
-and inside bands (PM2.5, PM10), category thresholds on both scales, US
+and inside bands (all six pollutants: PM2.5, PM10, NO2, SO2, O3, CO),
+category thresholds on both scales (labels and the colour variable each
+category returns), US
 EPA AQI for known PM2.5 inputs, risk-score bounds and persona ordering,
-exposure-dose monotonicity and the N95 reduction, and best-window
-selection over hourly values:
+the integrity of the persona/activity lookup tables the UI renders from,
+sub-index and risk-score monotonicity, exposure-dose monotonicity and
+the N95 reduction, and best-window selection over hourly values:
 
 ```sh
-node --test tests/logic.test.js   # 19 tests, all passing
+node --test tests/logic.test.js   # 32 tests, all passing
 ```
 
 ## Run locally
